@@ -33,7 +33,7 @@ jobs:
         run: mvn clean verify
         env:
           # Переопределяем порты, если они отличаются от стандартных в тестах
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/mydatabase
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5434/mydatabase
           SPRING_DATA_REDIS_PORT: 6381
           SPRING_ELASTICSEARCH_URIS: http://localhost:9200
           SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9092
