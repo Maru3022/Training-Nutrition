@@ -21,17 +21,19 @@ jobs:
           cache: maven
 
       - name: Start Infrastructure (Docker Compose)
-        run: docker-compose -f compose.yaml up -d
+        # В GitHub Actions теперь используется 'docker compose' (без дефиса)
+        run: docker compose -f compose.yaml up -d
 
       - name: Wait for Services
         run: |
           echo "Waiting for services to be ready..."
-          # Увеличил время до 40с, так как Elastic и Kafka в облаке поднимаются не сразу
-          sleep 40 
+          # ElasticSearch и Kafka — ребята тяжелые, дадим им время
+          sleep 45 
 
       - name: Build and Test with Maven
         run: mvn clean verify
         env:
+          # Используем переменные окружения, чтобы Spring соединился с Docker
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5434/mydatabase
           SPRING_DATA_REDIS_PORT: 6381
           SPRING_ELASTICSEARCH_URIS: http://localhost:9200
@@ -39,25 +41,4 @@ jobs:
 
       - name: Stop Infrastructure
         if: always()
-        run: docker-compose -f compose.yaml down
-
-  build-image:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and Push Docker Image
-        run: |
-          mvn clean package -DskipTests
-          # Замени 'your-username' на свой логин в Docker Hub
-          docker build -t your-username/nutrition-tips:latest .
-          docker push your-username/nutrition-tips:latest
+        run: docker compose -f compose.yaml down

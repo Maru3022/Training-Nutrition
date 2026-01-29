@@ -2,9 +2,9 @@ services:
   postgres:
     image: 'postgres:latest'
     environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+      POSTGRES_DB: mydatabase
+      POSTGRES_PASSWORD: secret
+      POSTGRES_USER: myuser
     ports:
       - '5434:5432'
 
@@ -13,17 +13,15 @@ services:
     ports:
       - '6381:6379'
 
-  # Поисковый движок для твоих советов по питанию
   elasticsearch:
     image: 'docker.elastic.co/elasticsearch/elasticsearch:8.12.0'
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false # Выключаем пароли для локальной разработки
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Ограничиваем память, эластик очень прожорливый
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - '9200:9200'
 
-  # Визуальный интерфейс для эластика (заходи на localhost:5601)
   kibana:
     image: 'docker.elastic.co/kibana/kibana:8.12.0'
     depends_on:
@@ -46,6 +44,7 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # Добавил INTERNAL слушатель, чтобы микросервисы могли общаться внутри докера
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
