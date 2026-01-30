@@ -1,0 +1,14 @@
+package com.example.trainingnutrition.Service.messaging;
+
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Service;
+
+@Service
+public class KafkaConsumerService {
+
+    @KafkaListener(topics = "nutrition-topic", groupId = "nutrition-group")
+    public void consume(Object message) {
+        System.out.println("Received a message from kafka: " + message);
+    }
+
+}
