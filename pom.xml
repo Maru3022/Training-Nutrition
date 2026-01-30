@@ -103,8 +103,6 @@
                     <groupId>org.junit.vintage</groupId>
                     <artifactId>junit-vintage-engine</artifactId>
                 </exclusion>
-            </exclusions>
-            <exclusions>
                 <exclusion>
                     <groupId>org.mockito</groupId>
                     <artifactId>mockito-core</artifactId>
