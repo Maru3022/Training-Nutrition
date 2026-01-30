@@ -11,7 +11,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaRepositories(basePackages = "com.example.trainingnutrition.Repository.jpa")
 @EnableElasticsearchRepositories(basePackages = "com.example.trainingnutrition.Repository.elastic")
 public class TrainingNutritionApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(TrainingNutritionApplication.class, args);
     }

@@ -21,20 +21,17 @@ jobs:
           cache: maven
 
       - name: Start Infrastructure
-        # Запуск всех контейнеров в фоновом режиме
         run: docker compose up -d
 
       - name: Wait for Elasticsearch
-        # Цикл проверки API: ждем ответа от кластера до 120 секунд
+        # Ждем ответа от API до 120 секунд
         run: |
-          echo "Waiting for Elasticsearch to start..."
-          timeout 120s bash -c 'until curl -s http://localhost:9200/_cluster/health | grep -q "\"status\":\""; do echo "Still waiting..."; sleep 5; done'
-          echo "Elasticsearch is ready!"
-          # Небольшая пауза для завершения инициализации индексов
-          sleep 5
+          echo "Waiting for Elasticsearch API..."
+          timeout 120s bash -c 'until curl -s http://localhost:9200/_cluster/health | grep -q "\"status\":\""; do echo "Elastic is initializing..."; sleep 5; done'
+          echo "Elasticsearch is READY!"
+          sleep 10
 
       - name: Build and Test with Maven
-        # Запуск тестов с передачей переменных окружения для подключения к Docker
         run: mvn clean verify
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5434/mydatabase
