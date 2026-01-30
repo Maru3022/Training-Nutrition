@@ -1,11 +1,11 @@
 package com.example.trainingnutrition.Service.nutrition;
 
-import com.example.trainingnutrition.Domain.NutritionTip;
+import com.example.trainingnutrition.Domain.elastic.NutritionTipEntity;
 
 import java.util.List;
 
 public interface TipService {
-    NutritionTip createTip(NutritionTip tip);
-    List<NutritionTip> getAllTips();
-    NutritionTip getTipById(Long id);
+    NutritionTipEntity createTip(NutritionTipEntity tip);
+    List<NutritionTipEntity> getAllTips();
+    NutritionTipEntity getTipById(Long id);
 }

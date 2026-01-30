@@ -1,0 +1,13 @@
+spring:
+  kafka:
+    listener:
+      auto-startup: false
+
+  data:
+    elasticsearch:
+      repositories:
+        enabled: false
+
+  jpa:
+    hibernate:
+      ddl-auto: none

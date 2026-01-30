@@ -1,4 +1,4 @@
-name: Java CI/CD with Docker Compose
+name: Java CI with Docker Compose
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,29 +16,34 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: 21
           cache: maven
 
-      - name: Start Infrastructure
+      - name: Start infrastructure
         run: docker compose up -d
 
-      - name: Wait for Elasticsearch
-        # Ждем ответа от API до 120 секунд
+      - name: Wait for PostgreSQL
         run: |
-          echo "Waiting for Elasticsearch API..."
-          timeout 120s bash -c 'until curl -s http://localhost:9200/_cluster/health | grep -q "\"status\":\""; do echo "Elastic is initializing..."; sleep 5; done'
-          echo "Elasticsearch is READY!"
-          sleep 10
+          timeout 60s bash -c 'until pg_isready -h localhost -p 5434 -U myuser; do sleep 3; done'
 
-      - name: Build and Test with Maven
+      - name: Wait for Elasticsearch
+        run: |
+          timeout 120s bash -c 'until curl -s http://localhost:9200 >/dev/null; do sleep 5; done'
+
+      - name: Wait for Kafka
+        run: |
+          timeout 120s bash -c 'until nc -z localhost 9094; do sleep 5; done'
+
+      - name: Build & Test
         run: mvn clean verify
         env:
+          SPRING_PROFILES_ACTIVE: test
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5434/mydatabase
           SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9094
           SPRING_ELASTICSEARCH_URIS: http://localhost:9200
           SPRING_DATA_REDIS_PORT: 6381
 
-      - name: Stop Infrastructure
+      - name: Stop infrastructure
         if: always()
-        run: docker compose down
+        run: docker compose down -v

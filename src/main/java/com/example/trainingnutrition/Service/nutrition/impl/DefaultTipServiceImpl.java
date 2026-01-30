@@ -1,6 +1,6 @@
 package com.example.trainingnutrition.Service.nutrition.impl;
 
-import com.example.trainingnutrition.Domain.NutritionTip;
+import com.example.trainingnutrition.Domain.elastic.NutritionTipEntity;
 import com.example.trainingnutrition.Repository.jpa.NutritionTipRepository;
 import com.example.trainingnutrition.Service.messaging.KafkaProducerService;
 import com.example.trainingnutrition.Service.nutrition.TipService;
@@ -13,23 +13,26 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class DefaultTipServiceImpl implements TipService {
-    private final NutritionTipRepository repository;
+    private final NutritionTipRepository jpaRepository;
     private final KafkaProducerService kafkaProducer;
 
-    public NutritionTip createTip(NutritionTip tip){
-        NutritionTip saved = repository.save(tip);
+    public NutritionTipEntity createTip(NutritionTipEntity tip){
+        NutritionTipEntity saved = jpaRepository.save(tip);
         kafkaProducer.sendMessage("nutrition-topic", saved);
         return saved;
     }
 
     @Override
     @Cacheable(value = "tips")
-    public List<NutritionTip> getAllTips(){
-        return repository.findAll();
+    public List<NutritionTipEntity> getAllTips(){
+        return jpaRepository.findAll();
     }
 
     @Override
-    public NutritionTip getTipById(Long id){
-        return repository.findById(id).orElseThrow();
+    public NutritionTipEntity getTipById(Long id){
+        return jpaRepository.findById(id)
+                .orElseThrow(
+                () -> new RuntimeException("Tip not found: " + id)
+        );
     }
 }
