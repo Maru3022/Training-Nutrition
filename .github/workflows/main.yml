@@ -21,23 +21,17 @@ jobs:
           cache: maven
 
       - name: Start Infrastructure (Docker Compose)
-        # В GitHub Actions теперь используется 'docker compose' (без дефиса)
         run: docker compose -f compose.yaml up -d
 
       - name: Wait for Services
         run: |
-          echo "Waiting for services to be ready..."
-          # ElasticSearch и Kafka — ребята тяжелые, дадим им время
-          sleep 45 
-
       - name: Build and Test with Maven
         run: mvn clean verify
         env:
-          # Используем переменные окружения, чтобы Spring соединился с Docker
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5434/mydatabase
           SPRING_DATA_REDIS_PORT: 6381
           SPRING_ELASTICSEARCH_URIS: http://localhost:9200
-          SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+          SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9094
 
       - name: Stop Infrastructure
         if: always()
