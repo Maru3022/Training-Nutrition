@@ -23,13 +23,14 @@ jobs:
       - name: Start Infrastructure
         run: docker compose up -d
 
-      - name: Wait for Services (Healthcheck)
-        # Эта команда будет ждать, пока все сервисы с пометкой healthcheck станут 'healthy'
+      - name: Hard Wait for Elasticsearch
+        # Мы будем стучаться в Elastic каждые 5 секунд, пока он не ответит HTTP 200
         run: |
-          echo "Waiting for Elasticsearch and Postgres to be ready..."
-          # Если команда wait не поддерживается старым docker, используем цикл:
-          timeout 120s bash -c 'until [ "$(docker inspect -f {{.State.Health.Status}} elasticsearch-1)" == "healthy" ]; do sleep 5; done'
-          echo "Services are ready!"
+          echo "Waiting for Elasticsearch API..."
+          timeout 120s bash -c 'until curl -s http://localhost:9200/_cluster/health | grep -q "\"status\":\""; do echo "Elastic is initializing..."; sleep 5; done'
+          echo "Elasticsearch is READY!"
+          # Дадим еще 5 секунд на финальную прогрузку индексов
+          sleep 5
 
       - name: Build and Test with Maven
         run: mvn clean verify
