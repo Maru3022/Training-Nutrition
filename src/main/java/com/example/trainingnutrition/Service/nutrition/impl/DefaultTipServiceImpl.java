@@ -1,11 +1,10 @@
 package com.example.trainingnutrition.Service.nutrition.impl;
 
 import com.example.trainingnutrition.Domain.NutritionTip;
-import com.example.trainingnutrition.JPA.NutritionTipRepository;
+import com.example.trainingnutrition.Repository.jpa.NutritionTipRepository;
 import com.example.trainingnutrition.Service.messaging.KafkaProducerService;
 import com.example.trainingnutrition.Service.nutrition.TipService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 

@@ -1,4 +1,4 @@
-package com.example.trainingnutrition.ElasticSearch;
+package com.example.trainingnutrition.Repository.elastic;
 
 import com.example.trainingnutrition.Domain.NutritionTip;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;

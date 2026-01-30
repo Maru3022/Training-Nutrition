@@ -1,4 +1,4 @@
-package com.example.trainingnutrition.JPA;
+package com.example.trainingnutrition.Repository.jpa;
 
 import com.example.trainingnutrition.Domain.NutritionTip;
 import org.springframework.data.jpa.repository.JpaRepository;
