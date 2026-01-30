@@ -21,16 +21,33 @@ jobs:
           cache: maven
 
       - name: Start Infrastructure (Docker Compose)
+        # Поднимаем все сервисы в фоне
         run: docker compose -f compose.yaml up -d
 
       - name: Wait for Infrastructure
+        # Это самый важный этап. Ждем, пока базы реально будут готовы принимать данные.
         run: |
+          echo "Waiting for services to be healthy..."
+          # Ждем Elasticsearch (обычно самый медленный)
+          until [ "$(docker inspect -f {{.State.Health.Status}} elasticsearch-1)" == "healthy" ]; do
+            echo "Elasticsearch is still starting..."
+            sleep 5
+          done
+          # Ждем Postgres
+          until [ "$(docker inspect -f {{.State.Health.Status}} postgres-1)" == "healthy" ]; do
+            echo "Postgres is still starting..."
+            sleep 2
+          done
+          echo "All services are READY!"
+
       - name: Build and Test with Maven
         run: mvn clean verify
         env:
+          # Переопределяем параметры подключения для CI
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5434/mydatabase
           SPRING_DATA_REDIS_PORT: 6381
           SPRING_ELASTICSEARCH_URIS: http://localhost:9200
+          # ВАЖНО: используем 9094, так как это внешний порт в твоем compose.yaml
           SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9094
 
       - name: Stop Infrastructure
