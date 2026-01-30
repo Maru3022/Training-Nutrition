@@ -6,12 +6,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
-@SpringBootTest(
-        excludeAutoConfiguration = {
-                org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration.class,
-                org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration.class
-        }
-)
+@SpringBootTest(properties = {
+        "spring.data.elasticsearch.enabled=false",
+        "spring.kafka.bootstrap-servers=dummy:9092"
+})
 class TrainingNutritionApplicationTests {
 
     @MockBean
@@ -20,4 +18,5 @@ class TrainingNutritionApplicationTests {
     @Test
     void contextLoads() {}
 }
+
 
