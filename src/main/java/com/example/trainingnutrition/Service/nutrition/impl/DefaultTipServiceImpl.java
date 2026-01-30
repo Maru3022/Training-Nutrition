@@ -3,6 +3,7 @@ package com.example.trainingnutrition.Service.nutrition.impl;
 import com.example.trainingnutrition.Domain.NutritionTip;
 import com.example.trainingnutrition.Repository.NutritionTipRepository;
 import com.example.trainingnutrition.Service.messaging.KafkaProducerService;
+import com.example.trainingnutrition.Service.nutrition.TipService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -12,7 +13,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class DefaultTipServiceImpl {
+public class DefaultTipServiceImpl implements TipService {
     private final NutritionTipRepository repository;
     private final KafkaProducerService kafkaProducer;
 
