@@ -23,14 +23,12 @@ jobs:
       - name: Start Infrastructure
         run: docker compose up -d
 
-      - name: Hard Wait for Elasticsearch
-        # Мы будем стучаться в Elastic каждые 5 секунд, пока он не ответит HTTP 200
+      - name: Wait for Elasticsearch
+        # Ждем, пока Elastic реально начнет отвечать на HTTP запросы
         run: |
-          echo "Waiting for Elasticsearch API..."
-          timeout 120s bash -c 'until curl -s http://localhost:9200/_cluster/health | grep -q "\"status\":\""; do echo "Elastic is initializing..."; sleep 5; done'
-          echo "Elasticsearch is READY!"
-          # Дадим еще 5 секунд на финальную прогрузку индексов
-          sleep 5
+          echo "Waiting for Elasticsearch..."
+          timeout 120s bash -c 'until curl -s http://localhost:9200/_cluster/health | grep -q "\"status\":\""; do sleep 5; done'
+          echo "Elasticsearch is ready!"
 
       - name: Build and Test with Maven
         run: mvn clean verify

@@ -1,7 +1,7 @@
 package com.example.trainingnutrition.Service.nutrition.impl;
 
 import com.example.trainingnutrition.Domain.NutritionTip;
-import com.example.trainingnutrition.Repository.NutritionTipRepository;
+import com.example.trainingnutrition.JPA.NutritionTipRepository;
 import com.example.trainingnutrition.Service.messaging.KafkaProducerService;
 import com.example.trainingnutrition.Service.nutrition.TipService;
 import lombok.RequiredArgsConstructor;
@@ -17,11 +17,9 @@ public class DefaultTipServiceImpl implements TipService {
     private final NutritionTipRepository repository;
     private final KafkaProducerService kafkaProducer;
 
-    @Override
-    @CacheEvict(value = "tips", allEntries = true)
     public NutritionTip createTip(NutritionTip tip){
         NutritionTip saved = repository.save(tip);
-        kafkaProducer.sendMessage("nutrition-topic",saved);
+        kafkaProducer.sendMessage("nutrition-topic", saved);
         return saved;
     }
 
