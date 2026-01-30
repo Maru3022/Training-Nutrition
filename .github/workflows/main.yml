@@ -20,36 +20,25 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Start Infrastructure (Docker Compose)
-        # Поднимаем все сервисы в фоне
-        run: docker compose -f compose.yaml up -d
+      - name: Start Infrastructure
+        run: docker compose up -d
 
-      - name: Wait for Infrastructure
-        # Это самый важный этап. Ждем, пока базы реально будут готовы принимать данные.
+      - name: Wait for Services (Healthcheck)
+        # Эта команда будет ждать, пока все сервисы с пометкой healthcheck станут 'healthy'
         run: |
-          echo "Waiting for services to be healthy..."
-          # Ждем Elasticsearch (обычно самый медленный)
-          until [ "$(docker inspect -f {{.State.Health.Status}} elasticsearch-1)" == "healthy" ]; do
-            echo "Elasticsearch is still starting..."
-            sleep 5
-          done
-          # Ждем Postgres
-          until [ "$(docker inspect -f {{.State.Health.Status}} postgres-1)" == "healthy" ]; do
-            echo "Postgres is still starting..."
-            sleep 2
-          done
-          echo "All services are READY!"
+          echo "Waiting for Elasticsearch and Postgres to be ready..."
+          # Если команда wait не поддерживается старым docker, используем цикл:
+          timeout 120s bash -c 'until [ "$(docker inspect -f {{.State.Health.Status}} elasticsearch-1)" == "healthy" ]; do sleep 5; done'
+          echo "Services are ready!"
 
       - name: Build and Test with Maven
         run: mvn clean verify
         env:
-          # Переопределяем параметры подключения для CI
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5434/mydatabase
-          SPRING_DATA_REDIS_PORT: 6381
-          SPRING_ELASTICSEARCH_URIS: http://localhost:9200
-          # ВАЖНО: используем 9094, так как это внешний порт в твоем compose.yaml
           SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9094
+          SPRING_ELASTICSEARCH_URIS: http://localhost:9200
+          SPRING_DATA_REDIS_PORT: 6381
 
       - name: Stop Infrastructure
         if: always()
-        run: docker compose -f compose.yaml down
+        run: docker compose down
