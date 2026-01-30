@@ -8,8 +8,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
 @EnableCaching
-@EnableJpaRepositories(basePackages = "com.example.trainingnutrition.Repository")
-@EnableElasticsearchRepositories(basePackages = "com.example.trainingnutrition.Repository")
+@EnableJpaRepositories(basePackages = "com.example.trainingnutrition.Repository.jpa")
+@EnableElasticsearchRepositories(basePackages = "com.example.trainingnutrition.Repository.elastic")
 public class TrainingNutritionApplication {
 
     public static void main(String[] args) {

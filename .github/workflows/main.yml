@@ -23,7 +23,7 @@ jobs:
       - name: Start Infrastructure (Docker Compose)
         run: docker compose -f compose.yaml up -d
 
-      - name: Wait for Services
+      - name: Wait for Infrastructure
         run: |
       - name: Build and Test with Maven
         run: mvn clean verify
