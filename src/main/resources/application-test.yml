@@ -1,23 +1,26 @@
 spring:
-  data:
-    elasticsearch:
-      enabled: false
-    redis:
-      repositories:
-              enabled: false
-
+  datasource:
+    url: jdbc:postgresql://localhost:5434/mydatabase
+    username: myuser
+    password: secret
+    driver-class-name: org.postgresql.Driver
 
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: none
-    show-sql: false
+      ddl-auto: update
+    show-sql: true
 
-  sql:
-    init:
-      mode: never
+  data:
+    redis:
+      host: localhost
+      port: 6381
+
+  elasticsearch:
+    uris: http://localhost:9200
 
   kafka:
-    bootstrap-servers: dummy:9092
-
-
+    bootstrap-servers: localhost:9094
+    consumer:
+      auto-offset-reset: earliest
+      group-id: nutrition-test-group
