@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface MealLogRepository extends JpaRepository<MealLog,Long> {
     List<MealLog> findByUserId(String userId);
+
 }
