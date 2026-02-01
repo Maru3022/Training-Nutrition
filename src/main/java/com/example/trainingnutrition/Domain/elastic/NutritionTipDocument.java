@@ -1,4 +1,4 @@
-package com.example.trainingnutrition.Domain.jpa;
+package com.example.trainingnutrition.Domain.elastic;
 
 import jakarta.persistence.Id;
 import lombok.Data;

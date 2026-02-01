@@ -1,4 +1,4 @@
-package com.example.trainingnutrition.Domain.elastic;
+package com.example.trainingnutrition.Domain.jpa;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

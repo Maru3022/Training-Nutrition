@@ -1,4 +1,4 @@
-package com.example.trainingnutrition.Domain;
+package com.example.trainingnutrition.Domain.jpa;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

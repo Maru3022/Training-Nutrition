@@ -1,6 +1,6 @@
 package com.example.trainingnutrition.Service.nutrition;
 
-import com.example.trainingnutrition.Domain.elastic.NutritionTipEntity;
+import com.example.trainingnutrition.Domain.jpa.NutritionTipEntity;
 
 import java.util.List;
 
