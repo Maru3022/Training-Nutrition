@@ -1,4 +1,5 @@
 package com.example.trainingnutrition.Service.nutrition;
 
-public class NutritionAdvisor {
+public interface NutritionAdvisor {
+    String generateDailyAdvice(String userId);
 }

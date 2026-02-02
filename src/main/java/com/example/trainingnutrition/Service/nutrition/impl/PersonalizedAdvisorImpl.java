@@ -1,6 +1,7 @@
 package com.example.trainingnutrition.Service.nutrition.impl;
 
 import com.example.trainingnutrition.Domain.jpa.MealLog;
+import com.example.trainingnutrition.Service.nutrition.NutritionAdvisor;
 import com.example.trainingnutrition.Service.nutrition.TipService;
 import com.example.trainingnutrition.Service.tracking.MealLogService;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PersonalizedAdvisorImpl {
+public class PersonalizedAdvisorImpl implements NutritionAdvisor {
 
     private final MealLogService mealLogService;
     private final TipService tipService;
