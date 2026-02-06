@@ -29,7 +29,6 @@ jobs:
           SPRING_PROFILES_ACTIVE: test
           SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9094
           SPRING_ELASTICSEARCH_URIS: http://localhost:9200
-          SPRING_DATA_REDIS_PORT: 6381
 
       - name: Stop infrastructure
         if: always()
