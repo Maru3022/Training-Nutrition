@@ -11,6 +11,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/tips")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class NutritionTipController {
 
     private final TipService tipService;

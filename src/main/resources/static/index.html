@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IRON NUTRITION | Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-red: #ff0000;
+            --dark-bg: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --text-gray: #cccccc;
+            --neon-glow: 0 0 15px rgba(255, 0, 0, 0.7);
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            background-image:
+                    linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)),
+                    url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); /* Текстура карбона */
+            color: white;
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            font-size: 3rem;
+            color: var(--primary-red);
+            text-shadow: var(--neon-glow);
+            border-left: 8px solid var(--primary-red);
+            padding-left: 20px;
+            margin-bottom: 50px;
+            letter-spacing: 5px;
+        }
+
+        h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        section {
+            background: var(--card-bg);
+            border: 1px solid #333;
+            padding: 30px;
+            margin-bottom: 40px;
+            border-radius: 4px;
+            box-shadow: 10px 10px 0px rgba(255, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        section:hover {
+            border-color: var(--primary-red);
+            transform: translateY(-5px);
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr auto;
+            gap: 15px;
+        }
+
+        input {
+            background: #222;
+            border: 1px solid #444;
+            padding: 15px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--primary-red);
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+        }
+
+        button {
+            background: var(--primary-red);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-weight: 900;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #cc0000;
+            box-shadow: var(--neon-glow);
+            letter-spacing: 1px;
+        }
+
+        .tip-card {
+            background: #111;
+            border-left: 4px solid var(--primary-red);
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .tip-card strong {
+            color: var(--primary-red);
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        #status-msg {
+            margin-top: 15px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        hr { border: 0; border-top: 1px solid #333; margin: 40px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>IRON NUTRITION</h1>
+
+    <section>
+        <h2><span>⚡</span> СОВЕТЫ ПО ПИТАНИЮ</h2>
+        <button onclick="fetchTips()">ПОЛУЧИТЬ ДАННЫЕ</button>
+        <div id="tips-list">
+            <p style="color: #666; margin-top: 20px;">Нажми кнопку, чтобы загрузить базу знаний...</p>
+        </div>
+    </section>
+
+    <section>
+        <h2><span>💪</span> ЛОГ ТРЕНИРОВОЧНОГО ДНЯ</h2>
+        <div class="input-group">
+            <input type="text" id="meal-name" placeholder="ЧТО СЪЕЛ? (НАПР. ПРОТЕИН)">
+            <input type="number" id="calories" placeholder="ККАЛ">
+            <button onclick="saveMeal()">ДОБАВИТЬ</button>
+        </div>
+        <p id="status-msg"></p>
+    </section>
+</div>
+
+<script>
+    const API_BASE = "http://localhost:8080/api";
+
+    async function fetchTips() {
+        const listDiv = document.getElementById('tips-list');
+        listDiv.innerHTML = "<p>ЗАГРУЗКА...</p>";
+
+        try {
+            const response = await fetch(`${API_BASE}/tips`);
+            const tips = await response.json();
+
+            listDiv.innerHTML = tips.map(tip => `
+                <div class="tip-card">
+                    <strong>${tip.title || 'DIETARY TIP'}</strong>
+                    <p>${tip.content || tip.description}</p>
+                </div>
+            `).join('');
+        } catch (err) {
+            listDiv.innerHTML = `<p style="color: var(--primary-red)">ОШИБКА СВЯЗИ: ПРОВЕРЬ БЭКЕНД</p>`;
+        }
+    }
+
+    async function saveMeal() {
+        const name = document.getElementById('meal-name').value;
+        const cals = document.getElementById('calories').value;
+        const msg = document.getElementById('status-msg');
+
+        if(!name || !cals) {
+            msg.style.color = "yellow";
+            msg.innerText = "ЗАПОЛНИ ВСЕ ПОЛЯ, АТЛЕТ!";
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/meals`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, calories: parseInt(cals), date: new Date().toISOString() })
+            });
+
+            if (response.ok) {
+                msg.style.color = "#00ff00";
+                msg.innerText = "ДАННЫЕ СОХРАНЕНЫ. ПРОДОЛЖАЙ В ТОМ ЖЕ ДУХЕ!";
+                document.getElementById('meal-name').value = '';
+                document.getElementById('calories').value = '';
+            }
+        } catch (err) {
+            msg.style.color = var(--primary-red);
+            msg.innerText = "СБОЙ ПРИ СОХРАНЕНИИ!";
+        }
+    }
+</script>
+
+</body>
+</html>

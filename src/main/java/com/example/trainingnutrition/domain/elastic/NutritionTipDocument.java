@@ -1,6 +1,6 @@
 package com.example.trainingnutrition.domain.elastic;
 
-import jakarta.persistence.Id;
+import org.springframework.data.annotation.Id;
 import lombok.Data;
 import org.springframework.data.elasticsearch.annotations.Document;
 

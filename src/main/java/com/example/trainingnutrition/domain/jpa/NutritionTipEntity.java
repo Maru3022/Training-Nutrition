@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity
+@Entity(name = "JpaNutritionTip")
 @Data
 @Table(name = "nutrition_tips")
 @NoArgsConstructor
