@@ -18,7 +18,7 @@ public class AdminTipController {
     public ResponseEntity<NutritionTipEntity> create(
             @RequestBody NutritionTipEntity nutritionTipEntity
     ){
-        return ResponseEntity.status(HttpStatus.CREATED).body(tipService.createTip(nutritionTipEntity));
+        return ResponseEntity.status(HttpStatus.CREATED).body(tipService.save(nutritionTipEntity));
     }
 
     @DeleteMapping("/{id}")

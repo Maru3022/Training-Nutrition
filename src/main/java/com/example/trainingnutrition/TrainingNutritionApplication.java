@@ -6,6 +6,8 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.data.elasticsearch.repository.config.EnableElasticsearchRepositories;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
+//ToDo: Интеграционные и JUnit тесты
+
 @SpringBootApplication
 @EnableCaching
 @EnableJpaRepositories(basePackages = "com.example.trainingnutrition.repository.jpa")

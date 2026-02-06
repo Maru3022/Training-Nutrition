@@ -1,9 +1,9 @@
 package com.example.trainingnutrition.controller;
 
+import com.example.trainingnutrition.domain.elastic.NutritionTipDocument;
 import com.example.trainingnutrition.domain.jpa.NutritionTipEntity;
 import com.example.trainingnutrition.service.nutrition.TipService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,23 +16,18 @@ public class NutritionTipController {
 
     private final TipService tipService;
 
-    @PostMapping
-    public ResponseEntity<NutritionTipEntity> create(
-            @RequestBody NutritionTipEntity tip
-    ){
-        return ResponseEntity.ok(tipService.createTip(tip));
-    }
-
     @GetMapping
-    public ResponseEntity<List<NutritionTipEntity>> getAll(){
-        return ResponseEntity.ok(tipService.getAllTips());
+    public List<NutritionTipEntity> getAllTips() {
+        return tipService.getAllTips();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<NutritionTipEntity> getById(
-            @PathVariable Long id
-    ){
-        return ResponseEntity.ok(tipService.getTipById(id));
+    @PostMapping
+    public NutritionTipEntity createTip(@RequestBody NutritionTipEntity tip) {
+        return tipService.save(tip);
     }
 
+    @GetMapping("/search")
+    public List<NutritionTipDocument> search(@RequestParam String term) {
+        return tipService.searchTips(term);
+    }
 }

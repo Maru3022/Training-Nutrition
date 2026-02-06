@@ -17,38 +17,46 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class DefaultTipServiceImpl implements TipService {
+
     private final NutritionTipRepository jpaRepository;
-    private final KafkaProducerService kafkaProducer;
     private final NutritionTipSearchRepository elasticRepository;
+    private final KafkaProducerService kafkaProducer;
 
     @Override
     @Transactional
     @CacheEvict(value = "tips", allEntries = true)
-    public NutritionTipEntity createTip(NutritionTipEntity tip){
-        NutritionTipEntity saved = jpaRepository.save(tip);
+    public NutritionTipEntity save(NutritionTipEntity tip) {
+        // 1. Сохраняем в SQL (чтобы увидеть в Swagger и Dashboard)
+        NutritionTipEntity savedTip = jpaRepository.save(tip);
 
-        NutritionTipDocument doc =  new NutritionTipDocument();
-        doc.setId(saved.getId());
-        doc.setTitle(tip.getTitle());
-        doc.setContent(tip.getContent());
-        doc.setCategory(saved.getCategory());
+        NutritionTipDocument doc = new NutritionTipDocument();
+        doc.setId(savedTip.getId().toString());
+        doc.setTitle(savedTip.getTitle());
+        doc.setContent(savedTip.getContent());
+        doc.setCategory(savedTip.getCategory());
+
         elasticRepository.save(doc);
 
-        kafkaProducer.sendMessage("nutrition-topic", saved);
-        return saved;
+        kafkaProducer.sendMessage("new-tip", "Добавлен новый совет: " + savedTip.getTitle());
+
+        return savedTip;
     }
 
     @Override
     @Cacheable(value = "tips")
-    public List<NutritionTipEntity> getAllTips(){
+    public List<NutritionTipEntity> getAllTips() {
         return jpaRepository.findAll();
     }
 
     @Override
-    public NutritionTipEntity getTipById(Long id){
+    public NutritionTipEntity getTipById(Long id) {
         return jpaRepository.findById(id)
-                .orElseThrow(
-                () -> new RuntimeException("Tip not found: " + id)
-        );
+                .orElseThrow(() -> new RuntimeException("Tip not found: " + id));
+    }
+
+    @Override
+    public List<NutritionTipDocument> searchTips(String term) {
+        // Вызываем метод, который мы добавили в NutritionTipSearchRepository
+        return elasticRepository.findByTitleContainingOrContentContaining(term, term);
     }
 }
