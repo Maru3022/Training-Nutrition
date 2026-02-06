@@ -23,23 +23,14 @@ jobs:
       - name: Start infrastructure
         run: docker compose up -d
 
-      - name: Wait for PostgreSQL
+      - name: Wait for services
         run: |
-          timeout 60s bash -c 'until pg_isready -h localhost -p 5434 -U myuser; do sleep 3; done'
-
-      - name: Wait for Elasticsearch
-        run: |
-          timeout 120s bash -c 'until curl -s http://localhost:9200 >/dev/null; do sleep 5; done'
-
-      - name: Wait for Kafka
-        run: |
-          timeout 120s bash -c 'until nc -z localhost 9094; do sleep 5; done'
+          sleep 15
 
       - name: Build & Test
         run: mvn clean verify
         env:
           SPRING_PROFILES_ACTIVE: test
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5434/mydatabase
           SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9094
           SPRING_ELASTICSEARCH_URIS: http://localhost:9200
           SPRING_DATA_REDIS_PORT: 6381
