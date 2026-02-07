@@ -1,5 +1,6 @@
 package com.example.trainingnutrition;
 
+import com.example.trainingnutrition.service.messaging.KafkaProducerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -12,6 +13,9 @@ class TrainingNutritionApplicationTests {
 
     @MockitoBean
     private KafkaTemplate<String, Object> kafkaTemplate;
+
+    @MockitoBean
+    private KafkaProducerService kafkaProducerService;
 
     @Test
     void contextLoads() {
