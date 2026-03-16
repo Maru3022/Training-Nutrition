@@ -1,4 +1,7 @@
 spring:
+  application:
+    name: NUTRITION-SERVICE   # имя сервиса для Eureka
+
   datasource:
     url: jdbc:postgresql://localhost:5434/mydatabase
     username: myuser
@@ -24,3 +27,12 @@ spring:
     consumer:
       auto-offset-reset: earliest
       group-id: nutrition-test-group
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://eureka-server:8761/eureka/}
+  instance:
+    prefer-ip-address: true
