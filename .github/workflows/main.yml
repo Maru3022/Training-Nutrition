@@ -1,189 +1,362 @@
-name: 🚀 CI/CD Pipeline — Training & Nutrition
+name: 🚀 CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
+    tags: [ "v*.*.*" ]
   pull_request:
-    branches: [ "main" ]
-
-env:
-  JAVA_VERSION: '21'
-  IMAGE_NAME: training-nutrition
+    branches: [ "main", "develop" ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy target'
+        type: choice
+        options: [ staging, production ]
+        default: staging
+      skip_tests:
+        description: 'Emergency deploy (skip tests)'
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-# ─────────────────────────────────────────────
+env:
+  JAVA_VERSION: '21'
+  REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/app
+
+# ──────────────────────────────────────────
 jobs:
 
-  # ══════════════════════════════════════════════
-  # JOB 1 — Build & Unit Tests
-  # ══════════════════════════════════════════════
-  build-and-test:
-    name: 🔨 Build & Test
+  # ════════════════════════════════════════════════
+  # [0] Checkout + metadata (все остальные ждут его)
+  # ════════════════════════════════════════════════
+  meta:
+    name: 📋 Checkout & metadata
     runs-on: ubuntu-latest
-
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      sha-short: ${{ steps.v.outputs.sha }}
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - id: v
+        run: |
+          echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: ☕ Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
-
-      - name: 📦 Cache Maven dependencies
-        uses: actions/cache@v4
+  # ════════════════════════════════════════════════
+  # [1a] Build & Test  ──┐
+  # [1b] SAST           ─┼── параллельно
+  # [1c] License check  ──┘
+  # ════════════════════════════════════════════════
+  build-and-test:
+    name: 🔨 Build & Test (JDK ${{ matrix.java }})
+    needs: meta
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_tests }}
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ '21', '22' ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { java-version: '${{ matrix.java }}', distribution: temurin, cache: maven }
+      - uses: actions/cache@v4
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
-
-      - name: 🐳 Start infrastructure
-        run: docker compose up -d
-
-      - name: ⏳ Wait for services
+          key: ${{ runner.os }}-jdk${{ matrix.java }}-${{ hashFiles('**/pom.xml') }}
+      - name: 🐳 Start infra
         run: |
-          echo "Waiting for PostgreSQL..."
-          timeout 60 bash -c 'until docker exec postgres-1 pg_isready -U myuser -d mydatabase 2>/dev/null; do sleep 2; done'
-          echo "Waiting for Kafka..."
-          timeout 60 bash -c 'until docker exec kafka-1 kafka-topics --bootstrap-server localhost:9092 --list 2>/dev/null; do sleep 2; done'
-          echo "Waiting for Elasticsearch..."
-          timeout 60 bash -c 'until curl -sf http://localhost:9200; do sleep 2; done'
-          echo "✅ All services ready"
-
-      - name: 🧪 Build & Test
-        run: mvn clean verify --batch-mode -DskipITs
+          docker compose -f docker-compose.ci.yml up -d
+          timeout 90 bash -c '
+            until docker exec postgres-1 pg_isready -U myuser -d mydb 2>/dev/null; do sleep 2; done
+            until docker exec kafka-1 kafka-topics --bootstrap-server localhost:9092 --list 2>/dev/null; do sleep 2; done
+            until curl -sf http://localhost:9200/_cluster/health; do sleep 2; done'
+      - name: 🧪 mvn verify
+        run: mvn clean verify -Ptest --batch-mode --no-transfer-progress
         env:
           SPRING_PROFILES_ACTIVE: test
-
-      - name: 📊 Publish test results
-        uses: dorny/test-reporter@v1
+          SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9094
+          SPRING_ELASTICSEARCH_URIS: http://localhost:9200
+          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_DATA_REDIS_PORT: 6381
+      - uses: dorny/test-reporter@v1
         if: always()
-        with:
-          name: JUnit Tests
-          path: target/surefire-reports/TEST-*.xml
-          reporter: java-junit
-
-      - name: ⬆️ Upload test artifacts
+        with: { name: 'JUnit JDK ${{ matrix.java }}', path: 'target/surefire-reports/*.xml', reporter: java-junit }
+      - uses: madrapps/jacoco-report@v1.6.1
+        with: { paths: target/site/jacoco/jacoco.xml, token: '${{ secrets.GITHUB_TOKEN }}', min-coverage-overall: 75 }
+      - uses: actions/upload-artifact@v4
+        if: matrix.java == '21' && success()
+        with: { name: application-jar, path: 'target/*.jar', retention-days: 7 }
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: target/surefire-reports/
-          retention-days: 5
+        with: { name: 'test-results-jdk${{ matrix.java }}', path: 'target/surefire-reports/' }
+      - if: always()
+        run: docker compose -f docker-compose.ci.yml down -v
 
-      - name: ⬆️ Upload JAR artifact
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: application-jar
-          path: target/*.jar
-          retention-days: 7
-
-      - name: 🛑 Stop infrastructure
-        if: always()
-        run: docker compose down -v
-
-  # ══════════════════════════════════════════════
-  # JOB 2 — Docker Build & Push to GHCR
-  # ══════════════════════════════════════════════
-  docker-build:
-    name: 🐳 Docker Build & Push
-    needs: build-and-test
+  sast:
+    name: 🔐 SAST
+    needs: meta
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    permissions:
-      contents: read
-      packages: write
-
+    permissions: { security-events: write }
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: ⬇️ Download JAR
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: 🦠 Semgrep
+        uses: semgrep/semgrep-action@v1
         with:
-          name: application-jar
-          path: target/
+          config: p/java p/spring p/owasp-top-ten
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+      - name: 🔎 CodeQL init
+        uses: github/codeql-action/init@v3
+        with: { languages: java }
+      - uses: actions/setup-java@v4
+        with: { java-version: '${{ env.JAVA_VERSION }}', distribution: temurin, cache: maven }
+      - run: mvn compile --batch-mode --no-transfer-progress
+      - name: 🔎 CodeQL analyse
+        uses: github/codeql-action/analyze@v3
 
-      - name: 🔑 Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 🏷️ Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix=sha-
-            type=ref,event=branch
-            type=raw,value=latest
-
-      - name: 🔧 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 🚢 Build & Push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # ══════════════════════════════════════════════
-  # JOB 3 — Security Scan (OWASP)
-  # ══════════════════════════════════════════════
-  security-scan:
-    name: 🛡️ Security Scan
-    needs: build-and-test
+  license-check:
+    name: 📄 License & SBOM
+    needs: meta
     runs-on: ubuntu-latest
-
-    permissions:
-      security-events: write
-
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { java-version: '${{ env.JAVA_VERSION }}', distribution: temurin, cache: maven }
+      - name: 📋 FOSSA scan
+        uses: fossas/fossa-action@main
+        with: { api-key: '${{ secrets.FOSSA_API_KEY }}' }
+      - name: 📦 Generate SBOM (CycloneDX)
+        run: mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom --batch-mode
+      - uses: actions/upload-artifact@v4
+        with: { name: sbom, path: target/bom.json }
 
-      - name: ☕ Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
+  # ════════════════════════════════════════════════
+  # [2] Quality gate — ждёт [1a][1b][1c]
+  # ════════════════════════════════════════════════
+  quality-gate:
+    name: ✅ Quality gate
+    needs: [ build-and-test, sast, license-check ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-java@v4
+        with: { java-version: '${{ env.JAVA_VERSION }}', distribution: temurin, cache: maven }
+      - uses: actions/download-artifact@v4
+        with: { name: test-results-jdk21, path: target/ }
+      - name: 🔍 SonarQube
+        run: |
+          mvn sonar:sonar \
+            -Dsonar.projectKey=app \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
+            --batch-mode --no-transfer-progress
+      - uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env: { SONAR_TOKEN: '${{ secrets.SONAR_TOKEN }}' }
+      - run: mvn checkstyle:check --batch-mode --no-transfer-progress
 
-      - name: 🔐 OWASP Dependency-Check
-        uses: dependency-check/Dependency-Check_Action@main
+  # ════════════════════════════════════════════════
+  # [3a] Dependency scan  ──┐
+  # [3b] Docker build      ──┘  параллельно, ждут [2]
+  # ════════════════════════════════════════════════
+  dependency-scan:
+    name: 🛡️ Dependency scan
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    permissions: { security-events: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { java-version: '${{ env.JAVA_VERSION }}', distribution: temurin, cache: maven }
+      - uses: dependency-check/Dependency-Check_Action@main
         with:
-          project: Training-Nutrition
+          project: App
           path: .
           format: SARIF
           out: reports
-          args: >
-            --failOnCVSS 7
-            --enableRetired
-
-      - name: 📤 Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+          args: --failOnCVSS 7 --enableRetired --nvdApiKey ${{ secrets.NVD_API_KEY }}
+      - uses: github/codeql-action/upload-sarif@v3
+        with: { sarif_file: reports/dependency-check-report.sarif }
+      - name: 🔍 Trivy filesystem
+        uses: aquasecurity/trivy-action@master
+        with: { scan-type: fs, format: sarif, output: trivy-fs.sarif, severity: CRITICAL,HIGH }
+      - uses: github/codeql-action/upload-sarif@v3
         if: always()
-        with:
-          sarif_file: reports/dependency-check-report.sarif
+        with: { sarif_file: trivy-fs.sarif }
 
-      - name: ⬆️ Upload HTML report
-        uses: actions/upload-artifact@v4
-        if: always()
+  docker-build:
+    name: 🐳 Docker build
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+      tags:   ${{ steps.docker-meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: application-jar, path: target/ }
+      - uses: docker/login-action@v3
+        with: { registry: ghcr.io, username: '${{ github.actor }}', password: '${{ secrets.GITHUB_TOKEN }}' }
+      - id: docker-meta
+        uses: docker/metadata-action@v5
         with:
-          name: security-report
-          path: reports/
-          retention-days: 14
+          images: ${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - id: push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags:      ${{ steps.docker-meta.outputs.tags }}
+          labels:    ${{ steps.docker-meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
+          provenance: true
+          sbom: true
+
+  # ════════════════════════════════════════════════
+  # [4a] Trivy image scan  ──┐  ждут [3a][3b]
+  # [4b] Push to GHCR      ──┘
+  # ════════════════════════════════════════════════
+  trivy-image:
+    name: 🔬 Trivy image scan
+    needs: [ dependency-scan, docker-build ]
+    runs-on: ubuntu-latest
+    permissions: { security-events: write }
+    steps:
+      - uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY_IMAGE }}:sha-${{ github.sha }}
+          format: sarif
+          output: trivy-image.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with: { sarif_file: trivy-image.sarif }
+
+  # ════════════════════════════════════════════════
+  # [5a] Deploy staging  ──┐
+  # [5b] Integration     ──┼── параллельно, ждут [4a][4b]
+  # [5c] Performance     ──┘
+  # ════════════════════════════════════════════════
+  deploy-staging:
+    name: 🌿 Deploy → staging
+    needs: [ trivy-image ]
+    runs-on: ubuntu-latest
+    environment: { name: staging, url: 'https://staging.app.example.com' }
+    steps:
+      - uses: actions/checkout@v4
+      - name: 🚀 Helm upgrade
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kc
+          KUBECONFIG=kc helm upgrade --install app ./helm \
+            --namespace staging --create-namespace \
+            --set image.tag=sha-${{ github.sha }} \
+            --set image.repository=${{ env.REGISTRY_IMAGE }} \
+            --set replicaCount=2 \
+            --atomic --timeout 5m
+      - name: 🏥 Health check
+        run: |
+          timeout 120 bash -c '
+            until curl -sf https://staging.app.example.com/actuator/health | grep -q UP; do sleep 5; done'
+
+  integration-tests:
+    name: 🧩 Integration tests
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { java-version: '${{ env.JAVA_VERSION }}', distribution: temurin, cache: maven }
+      - run: |
+          mvn verify -Pintegration-test --batch-mode --no-transfer-progress \
+            -Dtest.target.url=https://staging.app.example.com
+        env: { SPRING_PROFILES_ACTIVE: integration }
+      - uses: microsoft/playwright-github-action@v1
+      - run: npx playwright test --reporter=html
+        working-directory: e2e/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: e2e-report, path: e2e/playwright-report/ }
+
+  performance:
+    name: ⚡ Performance (k6)
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: grafana/k6-action@v0.3.1
+        with: { filename: k6/load-test.js, flags: '--out json=k6-results.json' }
+        env: { K6_BASE_URL: 'https://staging.app.example.com' }
+      - run: python3 scripts/assert-slos.py k6-results.json --p95-threshold 500 --error-rate-threshold 0.01
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: k6-report, path: k6-results.json }
+
+  # ════════════════════════════════════════════════
+  # [6] Canary → production — ждёт [5a][5b][5c]
+  # ════════════════════════════════════════════════
+  deploy-production:
+    name: 🚀 Canary → production
+    needs: [ integration-tests, performance ]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    environment: { name: production, url: 'https://app.example.com' }
+    steps:
+      - uses: actions/checkout@v4
+      - name: 🐦 Canary 10%
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_PROD }}" | base64 -d > kc
+          KUBECONFIG=kc helm upgrade --install app-canary ./helm \
+            --namespace production \
+            --set image.tag=sha-${{ github.sha }} \
+            --set canary.enabled=true --set canary.weight=10 \
+            --atomic --timeout 5m
+      - name: ⏳ Monitor canary 5 min
+        run: |
+          sleep 300
+          ERR=$(curl -sf "${{ secrets.PROMETHEUS_URL }}/api/v1/query" \
+            --data-urlencode 'query=rate(http_requests_total{status=~"5..",version="canary"}[5m])' \
+            | jq '.data.result[0].value[1] // "0"' -r)
+          (( $(echo "$ERR > 0.01" | bc -l) )) && { echo "❌ canary error rate $ERR — rollback"; exit 1; }
+          echo "✅ canary ok ($ERR)"
+      - name: 🚀 Full rollout
+        run: |
+          KUBECONFIG=kc helm upgrade --install app ./helm \
+            --namespace production \
+            --set image.tag=sha-${{ github.sha }} \
+            --set canary.enabled=false --set replicaCount=4 \
+            --atomic --timeout 10m
+      - name: 🏷️ GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with: { generate_release_notes: true }
+      - name: 🔔 Slack — success
+        if: success()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {"text":"✅ *${{ github.repository }}* deployed to production\nSHA: `${{ github.sha }}`\nAuthor: ${{ github.actor }}"}
+        env: { SLACK_WEBHOOK_URL: '${{ secrets.SLACK_WEBHOOK_URL }}' }
+      - name: 🔔 Slack — failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {"text":"❌ *${{ github.repository }}* production deploy FAILED\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}
+        env: { SLACK_WEBHOOK_URL: '${{ secrets.SLACK_WEBHOOK_URL }}' }
