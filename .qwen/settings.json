@@ -14,7 +14,8 @@
       "Bash(mvnw.cmd *)",
       "Bash(del *)",
       "Bash(\"c:\\progra~1\\git\\cmd\\git.exe\" *)",
-      "Bash(\"c:\\program files\\git\\bin\\git.exe\" *)"
+      "Bash(\"c:\\program files\\git\\bin\\git.exe\" *)",
+      "Bash(c:\\progra~1\\git\\cmd\\git.exe *)"
     ]
   },
   "$version": 3

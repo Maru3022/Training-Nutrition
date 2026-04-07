@@ -10,14 +10,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-@SpringBootTest(
-        properties = {
-                "spring.data.elasticsearch.repositories.enabled=false",
-                "spring.elasticsearch.uris=",
-                "spring.kafka.consumer.auto-startup=false",
-                "spring.kafka.producer.auto-startup=false"
-        }
-)
+@SpringBootTest
 @ActiveProfiles("test")
 class TrainingNutritionApplicationTests {
 
