@@ -31,9 +31,3 @@ spring:
     consumer:
       auto-offset-reset: earliest
       group-id: nutrition-test-group
-
-eureka:
-  client:
-    enabled: false
-    register-with-eureka: false
-    fetch-registry: false
