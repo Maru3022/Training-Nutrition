@@ -62,4 +62,10 @@ public class DefaultTipServiceImpl implements TipService {
         // Вызываем метод, который мы добавили в NutritionTipSearchRepository
         return elasticRepository.findByTitleContainingOrContentContaining(term, term);
     }
+
+    @Override
+    @CacheEvict(value = "tips", allEntries = true)
+    public void deleteById(Long id) {
+        jpaRepository.deleteById(id);
+    }
 }

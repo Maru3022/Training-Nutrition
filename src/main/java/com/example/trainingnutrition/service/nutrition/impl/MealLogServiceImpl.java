@@ -18,10 +18,10 @@ public class MealLogServiceImpl implements MealLogService {
 
     @Override
     public MealLog saveLog(
-            MealLog log
+            MealLog mealLog
     ) {
-        log.setConsumedAt(LocalDateTime.now());
-        return mealLogRepository.save(log);
+        mealLog.setConsumedAt(LocalDateTime.now());
+        return mealLogRepository.save(mealLog);
     }
 
     @Override

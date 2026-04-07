@@ -5,7 +5,7 @@ import com.example.trainingnutrition.domain.jpa.MealLog;
 import java.util.List;
 
 public interface MealLogService {
-    MealLog saveLog(MealLog log);
+    MealLog saveLog(MealLog mealLog);
     List<MealLog> getLogsByUserId(String userId);
     List<MealLog> findByUserId(String userId);
 }

@@ -9,4 +9,5 @@ public interface TipService {
     List<NutritionTipEntity> getAllTips();
     NutritionTipEntity getTipById(Long id);
     List<NutritionTipDocument> searchTips(String term);
+    void deleteById(Long id);
 }

@@ -25,6 +25,7 @@ public class AdminTipController {
     public ResponseEntity<Void> delete(
             @PathVariable Long id
     ){
+        tipService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 }

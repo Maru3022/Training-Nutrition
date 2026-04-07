@@ -1,23 +1,24 @@
 package com.example.trainingnutrition;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.elasticsearch.repository.config.EnableElasticsearchRepositories;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
 import com.example.trainingnutrition.repository.elastic.NutritionTipSearchRepository;
 import com.example.trainingnutrition.service.messaging.KafkaConsumerService;
 import com.example.trainingnutrition.service.messaging.KafkaProducerService;
 import com.example.trainingnutrition.service.notification.NotificationService;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-@SpringBootTest
+@SpringBootTest(
+        properties = {
+                "spring.data.elasticsearch.repositories.enabled=false",
+                "spring.elasticsearch.uris=",
+                "spring.kafka.consumer.auto-startup=false",
+                "spring.kafka.producer.auto-startup=false"
+        }
+)
 @ActiveProfiles("test")
-@EnableJpaRepositories(basePackages = "com.example.trainingnutrition.repository.jpa")
-@EnableElasticsearchRepositories(basePackages = "com.example.trainingnutrition.repository.elastic")
-@EntityScan(basePackages = "com.example.trainingnutrition")
 class TrainingNutritionApplicationTests {
 
     @MockitoBean
@@ -31,6 +32,9 @@ class TrainingNutritionApplicationTests {
 
     @MockitoBean
     private NutritionTipSearchRepository nutritionTipSearchRepository;
+
+    @MockitoBean
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Test
     void contextLoads() {
