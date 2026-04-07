@@ -8,6 +8,7 @@ import com.example.trainingnutrition.service.messaging.KafkaProducerService;
 import com.example.trainingnutrition.service.nutrition.TipService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DefaultTipServiceImpl implements TipService {
 
     private final NutritionTipRepository jpaRepository;
@@ -26,6 +28,7 @@ public class DefaultTipServiceImpl implements TipService {
     @Transactional
     @CacheEvict(value = "tips", allEntries = true)
     public NutritionTipEntity save(NutritionTipEntity tip) {
+        log.debug("Saving tip: {}", tip.getTitle());
         // 1. Сохраняем в SQL (чтобы увидеть в Swagger и Dashboard)
         NutritionTipEntity savedTip = jpaRepository.save(tip);
 
