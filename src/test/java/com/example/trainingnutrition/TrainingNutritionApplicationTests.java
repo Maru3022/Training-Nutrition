@@ -1,5 +1,6 @@
 package com.example.trainingnutrition;
 
+import com.example.trainingnutrition.repository.elastic.NutritionTipSearchRepository;
 import com.example.trainingnutrition.service.messaging.KafkaProducerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,6 +17,9 @@ class TrainingNutritionApplicationTests {
 
     @MockitoBean
     private KafkaProducerService kafkaProducerService;
+
+    @MockitoBean
+    private NutritionTipSearchRepository nutritionTipSearchRepository;
 
     @Test
     void contextLoads() {
