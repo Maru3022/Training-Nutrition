@@ -28,10 +28,10 @@ jobs:
           cache: maven
 
       - name: 🧪 Run Unit Tests
-        run: mvn clean test -Dspring.profiles.active=test
+        run: ./mvnw -B clean test -Dspring.profiles.active=test
 
       - name: 🏗️ Build Package
-        run: mvn clean package -DskipTests
+        run: ./mvnw -B clean package -DskipTests
 
       - name: 📤 Upload JAR
         uses: actions/upload-artifact@v4
@@ -47,7 +47,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: 🔐 OWASP Dependency Check
-        run: echo "Running security scan... (имитация 29m)" && sleep 5
+        shell: bash
+        run: echo "Running security scan... (imitation)" && sleep 5
       # Тут можно добавить реальный SonarQube или Checkstyle
 
   # 3. Docker (зависит от качества кода)
