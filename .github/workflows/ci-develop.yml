@@ -1,10 +1,8 @@
-name: Java CI/CD Professional
+name: CI/CD (develop)
 
 on:
   push:
-    branches: [ "main", "develop" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: ["develop"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,10 +10,9 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  JAVA_VERSION: '21'
+  JAVA_VERSION: "21"
 
 jobs:
-  # 1. Сборка и Тесты
   build-and-test:
     name: 🔨 Build & Test
     runs-on: ubuntu-latest
@@ -24,7 +21,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
+          distribution: temurin
           cache: maven
 
       - name: 🔧 Make mvnw executable
@@ -43,7 +40,6 @@ jobs:
           name: application-jar
           path: target/*.jar
 
-  # 2. Качество кода (зависит от сборки)
   code-quality:
     name: 🔍 Code Quality
     needs: build-and-test
@@ -53,14 +49,11 @@ jobs:
       - name: 🔐 OWASP Dependency Check
         shell: bash
         run: echo "Running security scan... (imitation)" && sleep 5
-      # Тут можно добавить реальный SonarQube или Checkstyle
 
-  # 3. Docker (зависит от качества кода)
   docker-build-push:
     name: 🐳 Docker Build & Push
     needs: code-quality
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     permissions:
       contents: read
       packages: write
@@ -83,56 +76,28 @@ jobs:
           echo "Building image for ${{ github.repository }}..."
           # Реальные команды docker build & push здесь
 
-  # 4. Деплой на Стейджинг (только из develop)
   deploy-staging:
     name: 🧪 Deploy to Staging
     needs: docker-build-push
-    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     environment: staging
     steps:
       - name: 🚀 SSH Deploy
         run: echo "Deploying to Staging Server..."
 
-  # 5. Интеграционные тесты (после стейджинга)
   integration-tests:
     name: 🔗 Integration Tests
     needs: deploy-staging
-    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
       - name: 🔗 Run IT
         run: echo "Running tests against Staging URL..."
 
-  # 6. Деплой в Продакшн (только из main)
-  deploy-production:
-    name: 🚀 Deploy to Production
-    needs: docker-build-push
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - name: 🚀 SSH Deploy
-        run: |
-          echo "Deploying to http://trains-service.example.com"
-          sleep 7
-
-  # 7. Уведомление для develop после staging-цепочки
   notify-staging:
     name: 📣 Notify Staging
     needs: integration-tests
-    if: always() && github.ref == 'refs/heads/develop'
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: 📣 Send Slack/Telegram Notification
         run: echo "Staging deployment status sent!"
-
-  # 8. Уведомление для main после production-цепочки
-  notify-production:
-    name: 📣 Notify Production
-    needs: deploy-production
-    if: always() && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📣 Send Slack/Telegram Notification
-        run: echo "Production deployment status sent!"
