@@ -27,6 +27,10 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: 🔧 Make mvnw executable
+        shell: bash
+        run: chmod +x mvnw
+
       - name: 🧪 Run Unit Tests
         run: ./mvnw -B clean test -Dspring.profiles.active=test
 
