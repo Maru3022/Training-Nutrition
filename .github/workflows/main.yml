@@ -93,6 +93,7 @@ jobs:
   integration-tests:
     name: 🔗 Integration Tests
     needs: deploy-staging
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
       - name: 🔗 Run IT
@@ -111,12 +112,22 @@ jobs:
           echo "Deploying to http://trains-service.example.com"
           sleep 7
 
-  # 7. Уведомление (ждет либо тесты, либо прод)
-  notify:
-    name: 📣 Notify
-    needs: [integration-tests, deploy-production]
-    if: always()
+  # 7. Уведомление для develop после staging-цепочки
+  notify-staging:
+    name: 📣 Notify Staging
+    needs: integration-tests
+    if: always() && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
       - name: 📣 Send Slack/Telegram Notification
-        run: echo "Deployment status sent!"
+        run: echo "Staging deployment status sent!"
+
+  # 8. Уведомление для main после production-цепочки
+  notify-production:
+    name: 📣 Notify Production
+    needs: deploy-production
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📣 Send Slack/Telegram Notification
+        run: echo "Production deployment status sent!"
