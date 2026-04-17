@@ -141,7 +141,7 @@ Lombok-методы (`get/set/toString/equals/hashCode`, конструктор�
   1. Сохраняет `tip` в `NutritionTipRepository` (PostgreSQL).
   2. Создает `NutritionTipDocument` и копирует поля.
   3. Сохраняет документ в `NutritionTipSearchRepository` (Elasticsearch).
-  4. Публикует событие в Kafka: topic `new-tip`.
+  4. Публикует событие в Kafka: topic `nutrition-topic`.
   5. Возвращает сохраненную JPA-сущность.
 - **Аннотации:** `@Transactional`, `@CacheEvict(value = "tips", allEntries = true)`.
 - **Почему так:** чтобы API сразу работало и на SQL-выдачу, и на поиск, и на event-сигнал.
@@ -299,7 +299,7 @@ Lombok-методы (`get/set/toString/equals/hashCode`, конструктор�
 - **Проверяет:** при `save` сервис:
   - пишет в JPA,
   - пишет в Elasticsearch,
-  - отправляет сообщение в Kafka topic `new-tip`,
+  - отправляет сообщение в Kafka topic `nutrition-topic`,
   - возвращает сущность с id.
 
 ### `MealLogServiceImplTest`
@@ -327,7 +327,7 @@ Lombok-методы (`get/set/toString/equals/hashCode`, конструктор�
 3. `DefaultTipServiceImpl.save`.
 4. PostgreSQL `save`.
 5. Elasticsearch `save`.
-6. Kafka publish (`new-tip`).
+6. Kafka publish (`nutrition-topic`).
 7. Cache evict (`tips`).
 8. Возврат созданной сущности.
 
@@ -363,10 +363,9 @@ Lombok-методы (`get/set/toString/equals/hashCode`, конструктор�
 
 ## 6. Важные замечания для разработчиков
 
-1. Topic mismatch:
-   - producer новых tips -> `new-tip`;
+1. Топик для событий создания совета синхронизирован:
+   - producer новых tips -> `nutrition-topic`;
    - consumers -> `nutrition-topic`.
-   Это разные каналы, событие сейчас не дойдет до listeners.
 
 2. `deleteById` не чистит Elasticsearch.
 
