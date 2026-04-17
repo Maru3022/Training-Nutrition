@@ -18,9 +18,7 @@ public class PersonalizedAdvisorImpl implements NutritionAdvisor {
     private final MealLogService mealLogService;
     private final TipService tipService;
 
-    public String generateDailyAdvice(
-            String userId
-    ) {
+    public String generateDailyAdvice(String userId) {
         List<MealLog> logs = mealLogService.getLogsByUserId(userId);
 
         int totalCalories = logs.stream()
@@ -33,15 +31,19 @@ public class PersonalizedAdvisorImpl implements NutritionAdvisor {
         log.info("Selected category '{}' based on {} kcal", targetCategory, totalCalories);
 
         return tipService.getAllTips().stream()
-                .filter((tip -> tip.getCategory().equalsIgnoreCase(targetCategory)))
+                .filter(tip -> tip.getCategory().equalsIgnoreCase(targetCategory))
                 .map(tip -> String.format("Based on your intake (%d kcal): %s", totalCalories, tip.getContent()))
-                .findAny().orElse("Keep maintaining a balanced diet and stay hydrated!");
-
+                .findAny()
+                .orElse("Keep maintaining a balanced diet and stay hydrated!");
     }
 
     private String determineCategory(int calories) {
-        if (calories < 1500) return "BULKING";
-        if (calories < 2500) return "CUTTING";
-        return "MAINTENANCE";
+        if (calories < 1800) {
+            return "CUTTING";
+        }
+        if (calories < 2600) {
+            return "MAINTENANCE";
+        }
+        return "BULKING";
     }
 }

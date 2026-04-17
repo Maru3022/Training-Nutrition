@@ -11,9 +11,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class DefaultTipServiceImplTest {
@@ -31,8 +35,8 @@ public class DefaultTipServiceImplTest {
     private DefaultTipServiceImpl tipService;
 
     @Test
-    void save_ShouldSaveAllSystems(){
-        NutritionTipEntity tip = new NutritionTipEntity(null,"Healthy Fat","Eat Avocado", "MAINTENANCE");
+    void save_ShouldSaveAllSystems() {
+        NutritionTipEntity tip = new NutritionTipEntity(null, "Healthy Fat", "Eat Avocado", "MAINTENANCE");
         NutritionTipEntity savedEntity = new NutritionTipEntity(10L, "Healthy Fat", "Eat Avocado", "MAINTENANCE");
 
         when(jpaRepository.save(any(NutritionTipEntity.class))).thenReturn(savedEntity);
@@ -42,6 +46,6 @@ public class DefaultTipServiceImplTest {
         assertNotNull(result.getId());
         verify(jpaRepository, times(1)).save(any());
         verify(elasticRepository, times(1)).save(any());
-        verify(kafkaProducerService, times(1)).sendMessage(eq("new-tip"), contains("Healthy Fat"));
+        verify(kafkaProducerService, times(1)).sendMessage(eq("nutrition-topic"), contains("Healthy Fat"));
     }
 }

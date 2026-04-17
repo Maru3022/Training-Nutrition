@@ -3,50 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IRON NUTRITION | Elastic Search</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;900&display=swap" rel="stylesheet">
-    <style>
-        :root { --primary-red: #ff0000; --dark-bg: #0a0a0a; --card-bg: #1a1a1a; --neon-glow: 0 0 15px rgba(255, 0, 0, 0.7); }
-        body { background-color: var(--dark-bg); background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); color: white; font-family: 'Roboto', sans-serif; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
-        .container { width: 100%; max-width: 800px; padding: 40px 20px; }
-        h1 { font-family: 'Orbitron', sans-serif; text-transform: uppercase; font-size: 2.5rem; color: var(--primary-red); text-shadow: var(--neon-glow); text-align: center; margin-bottom: 40px; }
-        .search-box { background: var(--card-bg); padding: 30px; border: 1px solid #333; border-radius: 4px; display: flex; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        input { flex-grow: 1; background: #222; border: 1px solid #444; padding: 15px; color: white; font-size: 1.1rem; outline: none; }
-        button { background: var(--primary-red); color: white; border: none; padding: 0 30px; font-weight: 900; text-transform: uppercase; cursor: pointer; font-family: 'Orbitron', sans-serif; }
-        .result-item { background: var(--card-bg); border-left: 5px solid var(--primary-red); padding: 20px; margin-top: 15px; }
-        .result-item h3 { margin: 0; color: var(--primary-red); font-family: 'Orbitron', sans-serif; }
-    </style>
+    <title>Training Nutrition | Elastic Discovery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles/main.css">
 </head>
-<body>
-<div class="container">
-    <h1>Elastic Search Node</h1>
-    <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Искать в Elastic (протеин, тест)...">
-        <button onclick="search()">ПОИСК</button>
-    </div>
-    <div id="results"></div>
-</div>
+<body class="elastic-page">
+<div class="page-shell narrow-shell">
+    <header class="topbar minimal">
+        <a class="brand" href="/">
+            <span class="brand-mark">TN</span>
+            <span>
+                <strong>Elastic Discovery</strong>
+                <small>Search experience</small>
+            </span>
+        </a>
+        <nav class="topbar-nav">
+            <a href="/">Dashboard</a>
+            <a href="/swagger-ui/index.html" target="_blank" rel="noreferrer">Swagger</a>
+        </nav>
+    </header>
 
-<script>
-    async function search() {
-        const query = document.getElementById('searchInput').value;
-        const resultsDiv = document.getElementById('results');
-        if (!query) return;
-        resultsDiv.innerHTML = '<p style="text-align:center">СКАНИРОВАНИЕ...</p>';
-        try {
-            const response = await fetch(`http://localhost:8083/api/v1/tips/search?term=${encodeURIComponent(query)}`);
-            const data = await response.json();
-            resultsDiv.innerHTML = data.length ? data.map(item => `
-                <div class="result-item">
-                    <small>${item.category || 'INFO'}</small>
-                    <h3>${item.title}</h3>
-                    <p>${item.content}</p>
-                </div>
-            `).join('') : '<p style="text-align:center">НИЧЕГО НЕ НАЙДЕНО</p>';
-        } catch (error) {
-            resultsDiv.innerHTML = '<p style="color:red; text-align:center">ОШИБКА ПОДКЛЮЧЕНИЯ К ELASTIC</p>';
-        }
-    }
-</script>
+    <main>
+        <section class="elastic-hero reveal">
+            <p class="eyebrow">Elasticsearch playground</p>
+            <h1>Полнотекстовый поиск по nutrition tips без сухого админского экрана.</h1>
+            <p class="hero-text">
+                Используйте готовые подсказки или введите свой запрос: белок, гидратация, восстановление, дефицит калорий. Страница работает поверх `/api/v1/tips/search`.
+            </p>
+            <div class="search-suggestions">
+                <button class="suggestion-chip" type="button" data-query="protein">protein</button>
+                <button class="suggestion-chip" type="button" data-query="hydration">hydration</button>
+                <button class="suggestion-chip" type="button" data-query="recovery">recovery</button>
+                <button class="suggestion-chip" type="button" data-query="cutting">cutting</button>
+            </div>
+        </section>
+
+        <section class="glass-card elastic-search-shell reveal">
+            <label class="search-label" for="searchInput">Поисковый запрос</label>
+            <div class="search-row">
+                <input type="text" id="searchInput" placeholder="Например: protein, omega, recovery meal">
+                <button class="primary-btn" type="button" id="searchButton">Искать</button>
+            </div>
+            <div class="search-meta">
+                <span id="search-state">Введите термин и запустите поиск.</span>
+                <span id="result-count">0 результатов</span>
+            </div>
+        </section>
+
+        <section class="results-grid reveal" id="results"></section>
+    </main>
+</div>
+<script src="/scripts/elastic.js"></script>
 </body>
 </html>

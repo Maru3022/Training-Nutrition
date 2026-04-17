@@ -2,76 +2,249 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>IRON NUTRITION | Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;900&display=swap" rel="stylesheet">
-    <style>
-        :root { --primary-red: #ff0000; --dark-bg: #0a0a0a; --card-bg: #1a1a1a; --neon-glow: 0 0 15px rgba(255, 0, 0, 0.7); }
-        body { background-color: var(--dark-bg); color: white; font-family: 'Roboto', sans-serif; margin: 0; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 900px; padding: 40px 20px; }
-        h1 { font-family: 'Orbitron', sans-serif; color: var(--primary-red); text-shadow: var(--neon-glow); border-left: 8px solid var(--primary-red); padding-left: 20px; text-transform: uppercase; margin-bottom: 50px; }
-        section { background: var(--card-bg); padding: 30px; margin-bottom: 40px; border: 1px solid #333; border-radius: 4px; }
-        .input-group { display: grid; grid-template-columns: 2fr 1fr auto; gap: 15px; }
-        input { background: #222; border: 1px solid #444; padding: 15px; color: white; outline: none; }
-        button { background: var(--primary-red); color: white; border: none; padding: 15px 30px; font-weight: 900; text-transform: uppercase; cursor: pointer; font-family: 'Orbitron'; transition: 0.2s; }
-        .tip-card { background: #111; border-left: 4px solid var(--primary-red); padding: 20px; margin-top: 15px; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Nutrition | Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles/main.css">
 </head>
-<body>
-<div class="container">
-    <h1>IRON NUTRITION</h1>
-    <section>
-        <h2>⚡ СОВЕТЫ ПО ПИТАНИЮ</h2>
-        <button onclick="fetchTips()">ПОЛУЧИТЬ ДАННЫЕ</button>
-        <div id="tips-list"></div>
-    </section>
-    <section>
-        <h2>💪 ЛОГ ТРЕНИРОВОЧНОГО ДНЯ</h2>
-        <div class="input-group">
-            <input type="text" id="meal-name" placeholder="ЧТО СЪЕЛ?">
-            <input type="number" id="calories" placeholder="ККАЛ">
-            <button onclick="saveMeal()">ДОБАВИТЬ</button>
-        </div>
-        <p id="status-msg"></p>
-    </section>
-</div>
+<body class="dashboard-page">
+<div class="page-shell">
+    <header class="topbar">
+        <a class="brand" href="/">
+            <span class="brand-mark">TN</span>
+            <span>
+                <strong>Training Nutrition</strong>
+                <small>Command Center</small>
+            </span>
+        </a>
+        <nav class="topbar-nav">
+            <a href="#tips-section">Советы</a>
+            <a href="#meal-section">Логи питания</a>
+            <a href="#training-section">Тренировки</a>
+            <a href="/indexElastic.html">Elastic Search</a>
+            <a href="/swagger-ui/index.html" target="_blank" rel="noreferrer">Swagger</a>
+        </nav>
+    </header>
 
-<script>
-    const API_BASE = "http://localhost:8083/api/v1";
-
-    async function fetchTips() {
-        const listDiv = document.getElementById('tips-list');
-        listDiv.innerHTML = "<p>ЗАГРУЗКА...</p>";
-        try {
-            const response = await fetch(`${API_BASE}/tips`);
-            const tips = await response.json();
-            listDiv.innerHTML = tips.map(tip => `
-                <div class="tip-card">
-                    <strong>${tip.title}</strong>
-                    <p>${tip.content}</p>
+    <main>
+        <section class="hero-panel reveal">
+            <div class="hero-copy">
+                <p class="eyebrow">High-load nutrition platform</p>
+                <h1>Красивый интерфейс для питания, рекомендаций и тренировочных событий.</h1>
+                <p class="hero-text">
+                    Один экран для PostgreSQL, Kafka, Redis и Elasticsearch-сценариев: создавайте советы, логируйте приёмы пищи,
+                    получайте персональные рекомендации и проверяйте поток данных без ощущения, что вы смотрите на технический черновик.
+                </p>
+                <div class="hero-actions">
+                    <button class="primary-btn" type="button" data-scroll="#tips-section">Загрузить советы</button>
+                    <a class="ghost-btn" href="/indexElastic.html">Открыть Elastic поиск</a>
                 </div>
-            `).join('');
-        } catch (err) {
-            listDiv.innerHTML = "<p style='color:red'>ОШИБКА СВЯЗИ С БЭКЕНДОМ</p>";
-        }
-    }
+                <div class="hero-badges">
+                    <span>Java 21</span>
+                    <span>Spring Boot 3.4</span>
+                    <span>Kafka Events</span>
+                    <span>Elastic Search</span>
+                </div>
+            </div>
+            <div class="hero-aside glass-card">
+                <p class="panel-label">System Pulse</p>
+                <div class="metric-grid">
+                    <article>
+                        <strong id="tips-count">0</strong>
+                        <span>советов в каталоге</span>
+                    </article>
+                    <article>
+                        <strong>4</strong>
+                        <span>основных backend-контура</span>
+                    </article>
+                    <article>
+                        <strong id="logs-count">0</strong>
+                        <span>логов у активного пользователя</span>
+                    </article>
+                    <article>
+                        <strong>24/7</strong>
+                        <span>готовность к нагрузочному демо</span>
+                    </article>
+                </div>
+                <div class="status-ribbon">
+                    <span class="status-dot"></span>
+                    <span id="global-status">Интерфейс готов к синхронизации с API</span>
+                </div>
+            </div>
+        </section>
 
-    async function saveMeal() {
-        const title = document.getElementById('meal-name').value;
-        const cals = document.getElementById('calories').value;
-        const msg = document.getElementById('status-msg');
-        if(!title || !cals) { msg.innerText = "ЗАПОЛНИ ПОЛЯ!"; return; }
-        try {
-            const response = await fetch(`${API_BASE}/tips`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, content: cals + " ккал", category: "USER_LOG" })
-            });
-            if (response.ok) {
-                msg.style.color = "#00ff00";
-                msg.innerText = "СОХРАНЕНО!";
-            }
-        } catch (err) { msg.style.color = "red"; msg.innerText = "СБОЙ!"; }
-    }
-</script>
+        <section class="feature-strip reveal">
+            <article class="feature-card warm">
+                <p>Nutrition tips</p>
+                <h2>SQL + Elastic</h2>
+                <span>Создание, выдача и быстрый полнотекстовый поиск в одном потоке.</span>
+            </article>
+            <article class="feature-card mint">
+                <p>Meal tracking</p>
+                <h2>Персональные логи</h2>
+                <span>Фиксация калорий и макросов с мгновенной выдачей истории пользователя.</span>
+            </article>
+            <article class="feature-card ocean">
+                <p>Async events</p>
+                <h2>Kafka-driven</h2>
+                <span>Логи тренировок и советы улетают в событийный контур без лишнего шума в UI.</span>
+            </article>
+        </section>
+
+        <section class="section-grid reveal" id="tips-section">
+            <article class="glass-card section-card wide">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Nutrition Library</p>
+                        <h2>Каталог советов</h2>
+                    </div>
+                    <button class="secondary-btn" type="button" id="refresh-tips">Обновить</button>
+                </div>
+                <div class="toolbar-row">
+                    <div class="chip-row" id="category-filters">
+                        <button class="chip active" type="button" data-category="ALL">Все</button>
+                        <button class="chip" type="button" data-category="CUTTING">Cutting</button>
+                        <button class="chip" type="button" data-category="MAINTENANCE">Maintenance</button>
+                        <button class="chip" type="button" data-category="BULKING">Bulking</button>
+                        <button class="chip" type="button" data-category="USER_LOG">User log</button>
+                    </div>
+                </div>
+                <div class="tips-grid" id="tips-list"></div>
+            </article>
+
+            <article class="glass-card section-card">
+                <div class="section-heading compact">
+                    <div>
+                        <p class="eyebrow">Admin Flow</p>
+                        <h2>Создать совет</h2>
+                    </div>
+                </div>
+                <form id="tip-form" class="stack-form">
+                    <label>
+                        <span>Заголовок</span>
+                        <input type="text" name="title" placeholder="Например: Recovery meal" required>
+                    </label>
+                    <label>
+                        <span>Категория</span>
+                        <select name="category">
+                            <option value="CUTTING">CUTTING</option>
+                            <option value="MAINTENANCE" selected>MAINTENANCE</option>
+                            <option value="BULKING">BULKING</option>
+                            <option value="USER_LOG">USER_LOG</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Описание</span>
+                        <textarea name="content" rows="5" placeholder="Короткий, но полезный nutrition tip" required></textarea>
+                    </label>
+                    <button class="primary-btn" type="submit">Сохранить совет</button>
+                    <p class="inline-status" id="tip-status"></p>
+                </form>
+            </article>
+        </section>
+
+        <section class="section-grid reveal" id="meal-section">
+            <article class="glass-card section-card">
+                <div class="section-heading compact">
+                    <div>
+                        <p class="eyebrow">Meal Tracking</p>
+                        <h2>Новый приём пищи</h2>
+                    </div>
+                </div>
+                <form id="meal-form" class="stack-form two-columns">
+                    <label>
+                        <span>User ID</span>
+                        <input type="text" name="userId" value="athlete-01" required>
+                    </label>
+                    <label>
+                        <span>Блюдо</span>
+                        <input type="text" name="foodName" placeholder="Salmon bowl" required>
+                    </label>
+                    <label>
+                        <span>Калории</span>
+                        <input type="number" name="calories" min="0" placeholder="620" required>
+                    </label>
+                    <label>
+                        <span>Белки</span>
+                        <input type="number" step="0.1" min="0" name="protein" placeholder="42">
+                    </label>
+                    <label>
+                        <span>Углеводы</span>
+                        <input type="number" step="0.1" min="0" name="carbs" placeholder="58">
+                    </label>
+                    <label>
+                        <span>Жиры</span>
+                        <input type="number" step="0.1" min="0" name="fats" placeholder="21">
+                    </label>
+                    <button class="primary-btn full-width" type="submit">Сохранить meal log</button>
+                    <p class="inline-status full-width" id="meal-status"></p>
+                </form>
+            </article>
+
+            <article class="glass-card section-card">
+                <div class="section-heading compact">
+                    <div>
+                        <p class="eyebrow">Personalization</p>
+                        <h2>Ежедневная рекомендация</h2>
+                    </div>
+                    <button class="secondary-btn" type="button" id="load-advice">Рассчитать</button>
+                </div>
+                <label class="inline-field">
+                    <span>User ID</span>
+                    <input type="text" id="advice-user-id" value="athlete-01">
+                </label>
+                <div class="advice-card" id="advice-box">
+                    <p>Добавьте meal log и запросите персональный совет. Ответ строится на фактическом калораже пользователя.</p>
+                </div>
+                <div class="timeline-list" id="meal-log-list"></div>
+            </article>
+        </section>
+
+        <section class="section-grid reveal" id="training-section">
+            <article class="glass-card section-card">
+                <div class="section-heading compact">
+                    <div>
+                        <p class="eyebrow">Training Events</p>
+                        <h2>Лог тренировки</h2>
+                    </div>
+                </div>
+                <form id="training-form" class="stack-form">
+                    <label>
+                        <span>User ID</span>
+                        <input type="text" name="userId" value="athlete-01" required>
+                    </label>
+                    <label>
+                        <span>Упражнение</span>
+                        <input type="text" name="exerciseType" placeholder="Intervals, Deadlift, Rowing" required>
+                    </label>
+                    <label>
+                        <span>Длительность (мин.)</span>
+                        <input type="number" name="durationMinutes" min="1" placeholder="45" required>
+                    </label>
+                    <button class="primary-btn" type="submit">Отправить в Kafka</button>
+                    <p class="inline-status" id="training-status"></p>
+                </form>
+            </article>
+
+            <article class="glass-card section-card">
+                <div class="section-heading compact">
+                    <div>
+                        <p class="eyebrow">Project Layout</p>
+                        <h2>Как проект построен</h2>
+                    </div>
+                </div>
+                <ul class="architecture-list">
+                    <li><strong>REST + Static UI:</strong> Spring Boot отдаёт API и две статические страницы без отдельного frontend build-step.</li>
+                    <li><strong>Persistence split:</strong> PostgreSQL держит транзакционные данные, Elasticsearch ускоряет поиск по советам.</li>
+                    <li><strong>Messaging:</strong> Kafka принимает training events и nutrition notifications для асинхронных сценариев.</li>
+                    <li><strong>Scalability add-ons:</strong> Redis и k6 уже встроены в историю проекта как кэш и нагрузочное тестирование.</li>
+                </ul>
+            </article>
+        </section>
+    </main>
+</div>
+<script src="/scripts/dashboard.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 package com.example.trainingnutrition.service.nutrition.impl;
 
-import com.example.trainingnutrition.domain.jpa.NutritionTipEntity;
 import com.example.trainingnutrition.domain.elastic.NutritionTipDocument;
+import com.example.trainingnutrition.domain.jpa.NutritionTipEntity;
 import com.example.trainingnutrition.repository.elastic.NutritionTipSearchRepository;
 import com.example.trainingnutrition.repository.jpa.NutritionTipRepository;
 import com.example.trainingnutrition.service.messaging.KafkaProducerService;
@@ -29,7 +29,7 @@ public class DefaultTipServiceImpl implements TipService {
     @CacheEvict(value = "tips", allEntries = true)
     public NutritionTipEntity save(NutritionTipEntity tip) {
         log.debug("Saving tip: {}", tip.getTitle());
-        // 1. Сохраняем в SQL (чтобы увидеть в Swagger и Dashboard)
+
         NutritionTipEntity savedTip = jpaRepository.save(tip);
 
         NutritionTipDocument doc = new NutritionTipDocument();
@@ -39,8 +39,7 @@ public class DefaultTipServiceImpl implements TipService {
         doc.setCategory(savedTip.getCategory());
 
         elasticRepository.save(doc);
-
-        kafkaProducer.sendMessage("new-tip", "Добавлен новый совет: " + savedTip.getTitle());
+        kafkaProducer.sendMessage("nutrition-topic", "New nutrition tip added: " + savedTip.getTitle());
 
         return savedTip;
     }
@@ -59,7 +58,6 @@ public class DefaultTipServiceImpl implements TipService {
 
     @Override
     public List<NutritionTipDocument> searchTips(String term) {
-        // Вызываем метод, который мы добавили в NutritionTipSearchRepository
         return elasticRepository.findByTitleContainingOrContentContaining(term, term);
     }
 

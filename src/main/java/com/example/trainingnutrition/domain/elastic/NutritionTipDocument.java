@@ -1,7 +1,7 @@
 package com.example.trainingnutrition.domain.elastic;
 
-import org.springframework.data.annotation.Id;
 import lombok.Data;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
@@ -11,7 +11,7 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 public class NutritionTipDocument {
 
     @Id
-    private String id; // ИЗМЕНИ НА STRING
+    private String id;
 
     @Field(type = FieldType.Text, name = "title")
     private String title;

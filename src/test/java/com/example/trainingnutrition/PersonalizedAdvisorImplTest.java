@@ -29,19 +29,19 @@ public class PersonalizedAdvisorImplTest {
     private PersonalizedAdvisorImpl advisor;
 
     @Test
-    void generateDailyAdvice_ShouldSelectCuttingCategory(){
+    void generateDailyAdvice_ShouldSelectMaintenanceCategory() {
         String userId = "user1";
         MealLog log = new MealLog();
         log.setCalories(2000);
 
-        NutritionTipEntity tip = new NutritionTipEntity(1L,"Title","Less sugar","CUTTING");
+        NutritionTipEntity tip = new NutritionTipEntity(1L, "Title", "Stay consistent with balanced meals", "MAINTENANCE");
 
         when(mealLogService.getLogsByUserId(userId)).thenReturn(List.of(log));
         when(tipService.getAllTips()).thenReturn(List.of(tip));
 
         String advice = advisor.generateDailyAdvice(userId);
 
-        assertTrue(advice.contains("Less sugar"));
+        assertTrue(advice.contains("Stay consistent with balanced meals"));
         assertTrue(advice.contains("2000 kcal"));
     }
 }
