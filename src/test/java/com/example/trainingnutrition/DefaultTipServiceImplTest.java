@@ -48,4 +48,14 @@ public class DefaultTipServiceImplTest {
         verify(elasticRepository, times(1)).save(any());
         verify(kafkaProducerService, times(1)).sendMessage(eq("nutrition-topic"), contains("Healthy Fat"));
     }
+
+    @Test
+    void deleteById_ShouldDeleteFromJpaAndElastic() {
+        Long id = 10L;
+
+        tipService.deleteById(id);
+
+        verify(elasticRepository, times(1)).deleteById("10");
+        verify(jpaRepository, times(1)).deleteById(id);
+    }
 }

@@ -62,8 +62,10 @@ public class DefaultTipServiceImpl implements TipService {
     }
 
     @Override
+    @Transactional
     @CacheEvict(value = "tips", allEntries = true)
     public void deleteById(Long id) {
+        elasticRepository.deleteById(id.toString());
         jpaRepository.deleteById(id);
     }
 }
