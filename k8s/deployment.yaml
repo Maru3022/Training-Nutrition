@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nutrition-service-deployment
+  labels:
+    app: nutrition-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nutrition-service
+  template:
+    metadata:
+      labels:
+        app: nutrition-service
+    spec:
+      containers:
+        - name: nutrition-service
+          image: YOUR_DOCKER_HUB_USERNAME/nutrition-service:latest # Замените на ваше имя пользователя Docker Hub
+          ports:
+            - containerPort: 8083
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgresql-service:5432/mydatabase # Предполагается, что у вас есть служба PostgreSQL в Kubernetes
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: password
+            - name: SPRING_DATA_REDIS_HOST
+              value: redis-service # Предполагается, что у вас есть служба Redis в Kubernetes
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379" # Стандартный порт Redis
+            - name: SPRING_ELASTICSEARCH_URIS
+              value: http://elasticsearch-service:9200 # Предполагается, что у вас есть служба Elasticsearch в Kubernetes
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka-service:9092 # Предполагается, что у вас есть служба Kafka в Kubernetes
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1024Mi"
+              cpu: "1000m"

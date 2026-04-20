@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nutrition-service
+  labels:
+    app: nutrition-service
+spec:
+  selector:
+    app: nutrition-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8083
+  type: LoadBalancer # Используйте NodePort, если LoadBalancer недоступен в вашем кластере
