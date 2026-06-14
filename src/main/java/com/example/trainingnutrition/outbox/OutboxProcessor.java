@@ -14,7 +14,11 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnProperty(name = "spring.task.scheduling.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(
+        name = "spring.kafka.enabled",
+        havingValue = "true",
+        matchIfMissing = true
+)
 public class OutboxProcessor {
 
     private final OutboxEventRepository outboxEventRepository;
@@ -23,7 +27,8 @@ public class OutboxProcessor {
     @Scheduled(fixedDelay = 3000)
     @Transactional
     public void processOutbox() {
-        List<OutboxEvent> pending = outboxEventRepository.findByStatusOrderByCreatedAt(OutboxEvent.Status.PENDING);
+        List<OutboxEvent> pending = outboxEventRepository
+                .findByStatusOrderByCreatedAt(OutboxEvent.Status.PENDING);
         for (OutboxEvent event : pending) {
             try {
                 outboxKafkaTemplate.send(event.getTopic(), event.getKey(), event.getPayload()).get();
