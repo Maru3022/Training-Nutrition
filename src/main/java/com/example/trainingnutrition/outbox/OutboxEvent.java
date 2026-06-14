@@ -30,7 +30,9 @@ public class OutboxEvent {
     private LocalDateTime createdAt;
     private LocalDateTime processedAt;
 
-    public enum Status { PENDING, SENT, FAILED }
+    public enum Status {
+        PENDING, SENT, FAILED
+    }
 
     @PrePersist
     public void prePersist() {

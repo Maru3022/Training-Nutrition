@@ -2,6 +2,7 @@ package com.example.trainingnutrition.outbox;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -13,10 +14,11 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "spring.task.scheduling.enabled", havingValue = "true", matchIfMissing = true)
 public class OutboxProcessor {
 
     private final OutboxEventRepository outboxEventRepository;
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaTemplate<String, String> outboxKafkaTemplate;
 
     @Scheduled(fixedDelay = 3000)
     @Transactional
@@ -24,7 +26,7 @@ public class OutboxProcessor {
         List<OutboxEvent> pending = outboxEventRepository.findByStatusOrderByCreatedAt(OutboxEvent.Status.PENDING);
         for (OutboxEvent event : pending) {
             try {
-                kafkaTemplate.send(event.getTopic(), event.getKey(), event.getPayload()).get();
+                outboxKafkaTemplate.send(event.getTopic(), event.getKey(), event.getPayload()).get();
                 event.setStatus(OutboxEvent.Status.SENT);
                 event.setProcessedAt(LocalDateTime.now());
                 outboxEventRepository.save(event);
