@@ -162,22 +162,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check kubeconfig secret
+        id: check_kube
+        run: |
+          if [ -z "${{ secrets.KUBE_CONFIG }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "KUBE_CONFIG secret is not set, skipping Kubernetes deploy"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Set up kubectl
+        if: steps.check_kube.outputs.skip == 'false'
         uses: azure/setup-kubectl@v3
         with:
           version: 'latest'
 
       - name: Configure kubeconfig
+        if: steps.check_kube.outputs.skip == 'false'
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
 
       - name: Deploy to Kubernetes
+        if: steps.check_kube.outputs.skip == 'false'
         run: |
           kubectl set image deployment/nutrition-service \
-            nutrition-service=${{ env.REGISTRY }}/${{ github.repository }}:latest \
+            nutrition-service=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:latest \
             --namespace=production
           kubectl rollout status deployment/nutrition-service --namespace=production --timeout=180s
+
+      - name: Skip deploy notice
+        if: steps.check_kube.outputs.skip == 'true'
+        run: echo "Kubernetes deploy skipped - KUBE_CONFIG secret not configured"
 
   notify:
     name: Notify
