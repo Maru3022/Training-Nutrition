@@ -16,12 +16,12 @@ spec:
     spec:
       containers:
         - name: nutrition-service
-          image: YOUR_DOCKER_HUB_USERNAME/nutrition-service:latest # Замените на ваше имя пользователя Docker Hub
+          image: your-registry/training-nutrition:latest
           ports:
             - containerPort: 8083
           env:
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://postgresql-service:5432/mydatabase # Предполагается, что у вас есть служба PostgreSQL в Kubernetes
+              value: jdbc:postgresql://postgresql-service:5432/mydatabase
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -33,29 +33,29 @@ spec:
                   name: db-secret
                   key: password
             - name: SPRING_DATA_REDIS_HOST
-              value: redis-service # Предполагается, что у вас есть служба Redis в Kubernetes
+              value: redis-service
             - name: SPRING_DATA_REDIS_PORT
-              value: "6379" # Стандартный порт Redis
+              value: "6379"
             - name: SPRING_ELASTICSEARCH_URIS
-              value: http://elasticsearch-service:9200 # Предполагается, что у вас есть служба Elasticsearch в Kubernetes
+              value: http://elasticsearch-service:9200
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
-              value: kafka-service:9092 # Предполагается, что у вас есть служба Kafka в Kubernetes
+              value: kafka-service:9092
           livenessProbe:
             httpGet:
-              path: /actuator/health
+              path: /actuator/health/liveness
               port: 8083
             initialDelaySeconds: 60
-            periodSeconds: 10
+            periodSeconds: 20
           readinessProbe:
             httpGet:
-              path: /actuator/health
+              path: /actuator/health/readiness
               port: 8083
-            initialDelaySeconds: 45
-            periodSeconds: 10
+            initialDelaySeconds: 30
+            periodSeconds: 15
           resources:
             requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
               memory: "512Mi"
               cpu: "500m"
-            limits:
-              memory: "1024Mi"
-              cpu: "1000m"
