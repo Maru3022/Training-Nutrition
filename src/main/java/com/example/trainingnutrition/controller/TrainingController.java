@@ -18,7 +18,10 @@ public class TrainingController {
     private final TrainingService trainingService;
 
     @PostMapping("/log")
-    public ResponseEntity<Map<String, String>> logWorkout(@Valid @RequestBody TrainingLogRequest request) {
+    public ResponseEntity<Map<String, String>> logWorkout(
+            @RequestHeader("X-User-Id") String userId,
+            @Valid @RequestBody TrainingLogRequest request) {
+        request.setUserId(userId);
         trainingService.logWorkout(request.getUserId(), request.getExerciseType(), request.getDurationMinutes());
         return ResponseEntity.ok(Map.of("status", "accepted"));
     }

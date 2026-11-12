@@ -6,7 +6,6 @@ import lombok.Data;
 
 @Data
 public class TrainingLogRequest {
-    @NotBlank
     private String userId;
 
     @NotBlank

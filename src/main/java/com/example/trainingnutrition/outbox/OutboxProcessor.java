@@ -28,13 +28,16 @@ public class OutboxProcessor {
     @Transactional
     public void processOutbox() {
         List<OutboxEvent> pending = outboxEventRepository
-                .findByStatusOrderByCreatedAt(OutboxEvent.Status.PENDING);
+                .findByStatusOrderByCreatedAt(OutboxEvent.Status.PENDING, org.springframework.data.domain.PageRequest.of(0, 50));
         for (OutboxEvent event : pending) {
             try {
                 outboxKafkaTemplate.send(event.getTopic(), event.getKey(), event.getPayload()).get();
                 event.setStatus(OutboxEvent.Status.SENT);
                 event.setProcessedAt(LocalDateTime.now());
                 outboxEventRepository.save(event);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Outbox publishing interrupted", e);
             } catch (Exception e) {
                 log.error("Error sending outbox event {}: {}", event.getId(), e.getMessage());
                 event.setStatus(OutboxEvent.Status.FAILED);

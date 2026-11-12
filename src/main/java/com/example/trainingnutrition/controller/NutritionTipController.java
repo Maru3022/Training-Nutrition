@@ -5,6 +5,8 @@ import com.example.trainingnutrition.domain.jpa.NutritionTipEntity;
 import com.example.trainingnutrition.service.nutrition.TipService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -22,7 +24,12 @@ public class NutritionTipController {
     }
 
     @PostMapping
-    public NutritionTipEntity createTip(@RequestBody NutritionTipEntity tip) {
+    public NutritionTipEntity createTip(
+            @RequestHeader("X-User-Role") String role,
+            @RequestBody NutritionTipEntity tip) {
+        if (!"ADMIN".equals(role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Administrator role is required");
+        }
         return tipService.save(tip);
     }
 

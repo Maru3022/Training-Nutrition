@@ -18,12 +18,13 @@ public class MealLogController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public MealLog createMealLog(@RequestBody MealLog mealLog) {
+    public MealLog createMealLog(@RequestHeader("X-User-Id") String userId, @RequestBody MealLog mealLog) {
+        mealLog.setUserId(userId);
         return mealLogService.saveLog(mealLog);
     }
 
-    @GetMapping("/{userId}")
-    public List<MealLog> getLogsByUserId(@PathVariable String userId) {
+    @GetMapping
+    public List<MealLog> getLogsByUserId(@RequestHeader("X-User-Id") String userId) {
         return mealLogService.getLogsByUserId(userId);
     }
 }
