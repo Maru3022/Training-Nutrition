@@ -11,4 +11,4 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 8083
-  type: LoadBalancer # Используйте NodePort, если LoadBalancer недоступен в вашем кластере
+  type: ClusterIP
