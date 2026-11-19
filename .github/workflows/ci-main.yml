@@ -1,207 +1,90 @@
-name: CI/CD (main)
-
+name: CI/CD
 on:
-  push:
-    branches: ["main"]
   pull_request:
-    branches: ["main"]
-
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
 env:
-  REGISTRY: ghcr.io
-  JAVA_VERSION: "21"
-
+  JAVA_VERSION: '21'
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/training-nutrition
 jobs:
-  build-and-test:
-    name: Build & Test
+  ci:
+    name: CI
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      checks: write
-      pull-requests: write
-
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - name: Set up Java
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.7.1
         with:
-          java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
           cache: maven
-
-      - name: Make mvnw executable
-        run: chmod +x mvnw
-
-      - name: Run Tests
-        run: ./mvnw -B clean verify -Dspring.profiles.active=test
-        env:
-          SPRING_PROFILES_ACTIVE: test
-
-      - name: Publish test report
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
-        with:
-          name: Maven Tests (main)
-          path: target/surefire-reports/*.xml
-          reporter: java-junit
-
-      - name: Build Package
-        run: ./mvnw -B package -DskipTests
-
-      - name: Upload JAR
-        uses: actions/upload-artifact@v4
-        with:
-          name: application-jar
-          path: target/*.jar
-          retention-days: 7
-
-  code-quality:
-    name: Code Quality
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          severity: CRITICAL,HIGH
-          format: sarif
-          output: trivy-fs-results.sarif
-          exit-code: 0
-
-      - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Verify application
+        run: mvn -B -ntp clean verify
+      - name: Install kubeconform
+        shell: bash
+        run: |
+          version=0.6.7
+          base="https://github.com/yannh/kubeconform/releases/download/v${version}"
+          curl --fail --silent --show-error --location --output kubeconform.tar.gz "${base}/kubeconform-linux-amd64.tar.gz"
+          curl --fail --silent --show-error --location --output CHECKSUMS "${base}/CHECKSUMS"
+          grep 'kubeconform-linux-amd64.tar.gz' CHECKSUMS | sha256sum --check
+          tar -xzf kubeconform.tar.gz kubeconform
+      - name: Validate Kubernetes manifests
+        shell: bash
+        run: |
+          ./kubeconform -strict -summary -ignore-missing-schemas k8s/deployment.yaml k8s/service.yaml
+      - name: Upload test reports
         if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          sarif_file: trivy-fs-results.sarif
-
-  docker-build-push:
-    name: Docker Build & Push
-    needs: code-quality
-    if: github.event_name == 'push'
+          name: test-reports-${{ github.run_id }}
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+            target/site/jacoco/
+          if-no-files-found: ignore
+          retention-days: 7
+  publish:
+    name: Publish image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: ci
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
-      security-events: write
-
+    outputs:
+      image: ${{ steps.publish.outputs.image }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - name: Set up Java
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.7.1
         with:
-          name: application-jar
-          path: target/
-
-      - name: Set lowercase image name
-        run: echo "IMAGE_NAME_LC=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}
-          tags: |
-            type=raw,value=latest
-            type=sha,format=long
-            type=ref,event=branch
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Trivy image scan
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:latest
-          severity: CRITICAL,HIGH
-          format: sarif
-          output: trivy-image-results.sarif
-          exit-code: 0
-
-      - name: Upload Trivy image results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: trivy-image-results.sarif
-
-  deploy-production:
-    name: Deploy to Production
-    needs: docker-build-push
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://nutrition-service.example.com
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Check kubeconfig secret
-        id: check_kube
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - name: Package verified commit
+        run: mvn -B -ntp -DskipTests package
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and publish immutable image
+        id: publish
+        shell: bash
         run: |
-          if [ -z "${{ secrets.KUBE_CONFIG }}" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "KUBE_CONFIG secret is not set, skipping Kubernetes deploy"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Set up kubectl
-        if: steps.check_kube.outputs.skip == 'false'
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest'
-
-      - name: Configure kubeconfig
-        if: steps.check_kube.outputs.skip == 'false'
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
-
-      - name: Deploy to Kubernetes
-        if: steps.check_kube.outputs.skip == 'false'
-        run: |
-          kubectl set image deployment/nutrition-service \
-            nutrition-service=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:latest \
-            --namespace=production
-          kubectl rollout status deployment/nutrition-service --namespace=production --timeout=180s
-
-      - name: Skip deploy notice
-        if: steps.check_kube.outputs.skip == 'true'
-        run: echo "Kubernetes deploy skipped - KUBE_CONFIG secret not configured"
-
-  notify:
-    name: Notify
-    needs: deploy-production
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Notify result
-        run: |
-          echo "Production deploy status: ${{ needs.deploy-production.result }}"
+          image="${IMAGE_NAME,,}"
+          docker build --label "org.opencontainers.image.revision=${GITHUB_SHA}" -t "${image}:${GITHUB_SHA}" .
+          push_output="$(docker push "${image}:${GITHUB_SHA}")"
+          printf '%s\n' "$push_output"
+          digest="$(printf '%s\n' "$push_output" | awk '/digest: sha256:/ {print $2}' | tail -1)"
+          test -n "$digest"
+          echo "image=${image}@${digest}" >> "$GITHUB_OUTPUT"
