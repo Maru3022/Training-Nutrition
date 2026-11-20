@@ -28,7 +28,9 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           cache: maven
       - name: Verify application
-        run: mvn -B -ntp clean verify
+        run: mvn -B -ntp clean verify -Dspring.profiles.active=test
+        env:
+          SPRING_PROFILES_ACTIVE: test
       - name: Install kubeconform
         shell: bash
         run: |
@@ -88,3 +90,4 @@ jobs:
           digest="$(printf '%s\n' "$push_output" | awk '/digest: sha256:/ {print $2}' | tail -1)"
           test -n "$digest"
           echo "image=${image}@${digest}" >> "$GITHUB_OUTPUT"
+
